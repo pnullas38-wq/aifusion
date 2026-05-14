@@ -1,12 +1,14 @@
 """
 VITALIS AI — FastAPI Backend
-Advanced Healthcare Intelligence System
+Healthcare Triage Assistant — NLP + risk scoring + care levels (demo).
 """
 
 import os
 import json
+import re
 import uuid
-from typing import Optional
+from typing import Any, Optional
+
 from datetime import datetime
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -21,7 +23,7 @@ ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")
 
 genai.configure(api_key=GEMINI_API_KEY)
 
-app = FastAPI(title="VITALIS AI CORE")
+app = FastAPI(title="VITALIS AI CORE — Healthcare Triage")
 
 app.add_middleware(
     CORSMiddleware,
@@ -31,11 +33,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-sessions = {}
+
+class PatientContext(BaseModel):
+    age_band: Optional[str] = None  # child | adult | senior
+    chronic_conditions: Optional[str] = None
+    allergies: Optional[str] = None
+    medications: Optional[str] = None
+    language: Optional[str] = "en"  # en | hi | kn
+
 
 class MessageRequest(BaseModel):
     session_id: Optional[str] = None
     message: str
+    patient_context: Optional[PatientContext] = None
+
 
 def _parse_triage_json(raw: str) -> dict:
     text = raw.strip()
@@ -51,32 +62,214 @@ def _parse_triage_json(raw: str) -> dict:
     return data
 
 
+def _extract_tokens(text: str) -> list[str]:
+    cleaned = re.sub(r"[^\w\s]", " ", text.lower())
+    stop = {
+        "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for", "of", "with",
+        "i", "my", "me", "is", "am", "are", "was", "been", "have", "has", "it", "this", "that",
+        "very", "some", "any",
+    }
+    words = [w for w in cleaned.split() if len(w) > 3 and w not in stop]
+    out: list[str] = []
+    for w in words:
+        if w not in out:
+            out.append(w)
+    return out[:12]
+
+
+ER_PATTERNS = [
+    r"chest\s+pain",
+    r"can'?t\s+breathe",
+    r"cannot\s+breathe",
+    r"struggling\s+to\s+breathe",
+    r"\bstroke\b",
+    r"unconscious",
+    r"severe\s+bleeding",
+    r"suicid",
+    r"anaphylaxis",
+    r"face\s+drooping",
+    r"slurred\s+speech",
+    r"heart\s+attack",
+    r"overdose",
+]
+
+CLINIC_PATTERNS = [
+    r"high\s+fever",
+    r"vomit(ing)?\s+blood",
+    r"blood\s+in\s+stool",
+    r"persistent\s+pain",
+    r"worse\s+over\s+(days|weeks)",
+    r"dehydrat",
+    r"\binfection\b",
+    r"\buti\b",
+]
+
+
+def _match_any(text: str, patterns: list[str]) -> bool:
+    t = text.lower()
+    return any(re.search(p, t) for p in patterns)
+
+
+def rule_based_triage(message: str, ctx: Optional[PatientContext], sid: str) -> dict[str, Any]:
+    """Heuristic triage when Gemini is offline — mirrors frontend engine for consistency."""
+    text = message.strip()
+    lower = text.lower()
+    nlp_symptoms = _extract_tokens(text)
+    red_flags: list[str] = []
+
+    chronic = (ctx.chronic_conditions or "").lower() if ctx else ""
+    allergies = (ctx.allergies or "").lower() if ctx else ""
+    if "heart" in chronic or "cardiac" in chronic:
+        red_flags.append("Cardiac history reported")
+    if "diabet" in chronic:
+        red_flags.append("Diabetes history reported")
+    if len(allergies) > 2:
+        red_flags.append("Allergies on file")
+
+    care_level = "home_care"
+    severity = "low"
+    risk_score = 22
+    is_emergency = False
+
+    if _match_any(text, ER_PATTERNS):
+        care_level = "emergency_room"
+        severity = "critical"
+        risk_score = 94
+        is_emergency = True
+        red_flags.append("High-acuity language pattern — seek emergency care if symptoms are current")
+    elif _match_any(text, CLINIC_PATTERNS) or ("fever" in lower and "days" in lower):
+        care_level = "clinic_visit"
+        severity = "moderate"
+        risk_score = 58
+    elif any(k in lower for k in ("pain", "hurt", "ache")):
+        care_level = "clinic_visit"
+        severity = "moderate"
+        risk_score = 48
+    elif any(k in lower for k in ("cough", "cold", "mild")):
+        care_level = "home_care"
+        severity = "low"
+        risk_score = 28
+
+    if ctx and ctx.age_band == "senior" and care_level == "home_care" and risk_score < 40:
+        risk_score = min(55, risk_score + 12)
+
+    if care_level == "emergency_room":
+        title = "Emergency department — immediate in-person evaluation"
+        ai = (
+            "Triage (rule engine): Possible emergency pattern from your description. "
+            + title
+            + ". This is not a diagnosis—if you are in danger, call your local emergency number now."
+        )
+        follow = (
+            "Are these symptoms happening right now? If yes, seek emergency care immediately. "
+            "If not, when did they begin?"
+        )
+    elif care_level == "clinic_visit":
+        title = "Clinic or primary care — schedule evaluation"
+        ai = (
+            "Triage (rule engine): Your symptoms may warrant a clinician visit soon. "
+            + title
+            + ". Bring a list of medications and when symptoms started."
+        )
+        follow = "Can you share onset timing, severity 1–10, and any new symptoms since yesterday?"
+    else:
+        title = "Home care — self-management & monitoring"
+        ai = (
+            "Triage (rule engine): Pattern suggests self-care with monitoring may be reasonable. "
+            + title
+            + ". Seek care if symptoms worsen or new red flags appear."
+        )
+        follow = "What makes symptoms better or worse? Any chronic conditions or daily medications?"
+
+    note = (
+        "Rural / low-connectivity mode: this pass uses on-server rules without generative AI. "
+        "When online, enable GEMINI_API_KEY for deeper NLP medical conversation analysis."
+    )
+
+    return {
+        "session_id": sid,
+        "ai_message": ai,
+        "follow_up_question": follow,
+        "timestamp": datetime.utcnow().isoformat(),
+        "care_level": care_level,
+        "risk_score": risk_score,
+        "severity": severity,
+        "is_emergency": is_emergency,
+        "nlp_symptoms": nlp_symptoms,
+        "nlp_entities_summary": "Tokens: " + ", ".join(nlp_symptoms[:6]) if nlp_symptoms else "No tokens extracted",
+        "red_flags": red_flags,
+        "care_recommendation_title": title,
+        "accessibility_note": note,
+    }
+
+
+def _build_user_blob(req: MessageRequest) -> str:
+    parts = [req.message.strip()]
+    ctx = req.patient_context
+    if ctx:
+        if ctx.age_band:
+            parts.append(f"[Age band: {ctx.age_band}]")
+        if ctx.chronic_conditions:
+            parts.append(f"[Chronic conditions: {ctx.chronic_conditions}]")
+        if ctx.allergies:
+            parts.append(f"[Allergies: {ctx.allergies}]")
+        if ctx.medications:
+            parts.append(f"[Medications: {ctx.medications}]")
+    return "\n".join(parts)
+
+
 @app.post("/api/triage")
 async def triage(request: MessageRequest):
     sid = request.session_id or str(uuid.uuid4())
     ts = datetime.utcnow().isoformat()
 
     if not GEMINI_API_KEY:
-        return {
-            "session_id": sid,
-            "ai_message": "VITALIS_CORE is online in offline mode (no GEMINI_API_KEY on server). I can still triage from your description—what symptoms are most urgent right now?",
-            "follow_up_question": "When did this start, and did anything change just before it began?",
-            "timestamp": ts,
-        }
+        out = rule_based_triage(request.message, request.patient_context, sid)
+        out["timestamp"] = ts
+        return out
+
+    lang = (request.patient_context.language if request.patient_context else None) or "en"
+    lang_note = ""
+    if lang == "hi":
+        lang_note = "Patient prefers Hindi where possible; keep medical terms clear in English when needed."
+    elif lang == "kn":
+        lang_note = "Patient prefers Kannada where possible; keep medical terms clear in English when needed."
 
     model = genai.GenerativeModel("gemini-2.0-flash")
+    user_blob = _build_user_blob(request)
 
-    prompt = f"""You are VITALIS CORE, a futuristic healthcare AI.
-    A patient says: {request.message}
+    prompt = f"""You are VITALIS CORE — an AI healthcare TRIAGE assistant (not a licensed clinician).
+Patient input (may include structured history in brackets):
+---
+{user_blob}
+---
+{lang_note}
 
-    Respond as a high-end medical OS. Be professional, empathetic, and sci-fi in tone.
-    Suggest 2 follow-up questions combined into one string (two sentences).
+Tasks:
+1) NLP: infer chief symptoms and salient entities from the text.
+2) Severity: assign low | moderate | high | critical based on presentation (conservative bias toward safety).
+3) Risk score: integer 0-100 (higher = more urgent).
+4) Emergency: is_emergency true if symptoms could be life-threatening imminently.
+5) Care level: exactly one of: home_care | clinic_visit | emergency_room
+   - home_care: minor / self-limited, clear self-care and monitoring instructions.
+   - clinic_visit: moderate / needs clinician within 24-72h unless worsening.
+   - emergency_room: high-risk / emergency symptoms — tell user to seek immediate in-person emergency care.
+6) Reduce unnecessary ER visits when clearly low risk, but NEVER downplay chest pain, breathing difficulty, stroke signs, severe bleeding, altered consciousness, or suicidal ideation.
 
-    Respond with ONLY valid JSON (no markdown outside the object):
-    {{
-        "ai_message": "...",
-        "follow_up_question": "First question. Second question."
-    }}"""
+Respond with ONLY valid JSON (no markdown fences):
+{{
+  "ai_message": "Empathetic preliminary guidance (not definitive diagnosis). 3-5 sentences.",
+  "follow_up_question": "Two concrete follow-up questions in one string.",
+  "care_level": "home_care|clinic_visit|emergency_room",
+  "risk_score": 0,
+  "severity": "low|moderate|high|critical",
+  "is_emergency": false,
+  "nlp_symptoms": ["short", "symptom", "chips"],
+  "nlp_entities_summary": "One line summarizing NLP understanding",
+  "red_flags": ["optional strings"],
+  "care_recommendation_title": "Short title for UI",
+  "accessibility_note": "One sentence on rural/low-bandwidth use: text-first, when to escalate, telemedicine if available."
+}}"""
 
     try:
         response = model.generate_content(prompt)
@@ -85,27 +278,84 @@ async def triage(request: MessageRequest):
             raise ValueError("empty model response")
         data = _parse_triage_json(raw_text)
         ai_message = data.get("ai_message")
-        follow = data.get("follow_up_question")
         if not isinstance(ai_message, str) or not ai_message.strip():
             raise ValueError("missing ai_message")
+        follow = data.get("follow_up_question")
         if isinstance(follow, list):
             follow = " ".join(str(x) for x in follow if x)
         if follow is not None and not isinstance(follow, str):
             follow = str(follow)
+
+        def _as_bool(v: Any) -> bool:
+            if isinstance(v, bool):
+                return v
+            if isinstance(v, str):
+                return v.strip().lower() in ("true", "1", "yes")
+            return False
+
+        def _care(raw: Any) -> str:
+            s = str(raw or "").lower().replace(" ", "_")
+            if "emergency" in s or s in ("er", "emergency_room"):
+                return "emergency_room"
+            if "clinic" in s or "urgent" in s or "doctor" in s:
+                return "clinic_visit"
+            return "home_care"
+
+        def _sev(raw: Any) -> str:
+            s = str(raw or "").lower()
+            if "critical" in s:
+                return "critical"
+            if "high" in s:
+                return "high"
+            if "mod" in s:
+                return "moderate"
+            return "low"
+
+        def _risk(raw: Any) -> int:
+            try:
+                v = int(float(raw))
+            except (TypeError, ValueError):
+                v = 35
+            return max(0, min(100, v))
+
+        symptoms = data.get("nlp_symptoms")
+        if not isinstance(symptoms, list):
+            symptoms = []
+        symptoms = [str(x).strip() for x in symptoms if str(x).strip()][:20]
+
+        red = data.get("red_flags")
+        if not isinstance(red, list):
+            red = []
+        red = [str(x).strip() for x in red if str(x).strip()][:10]
+
         return {
             "session_id": sid,
             "ai_message": ai_message.strip(),
             "follow_up_question": (follow or "").strip(),
             "timestamp": ts,
+            "care_level": _care(data.get("care_level")),
+            "risk_score": _risk(data.get("risk_score")),
+            "severity": _sev(data.get("severity")),
+            "is_emergency": _as_bool(data.get("is_emergency")),
+            "nlp_symptoms": symptoms,
+            "nlp_entities_summary": str(data.get("nlp_entities_summary") or "").strip()
+            or "Symptom concepts extracted from free text.",
+            "red_flags": red,
+            "care_recommendation_title": str(data.get("care_recommendation_title") or "").strip()
+            or "Care recommendation",
+            "accessibility_note": str(data.get("accessibility_note") or "").strip()
+            or "Text-first triage suitable for low-bandwidth settings; seek local care if unsure.",
         }
     except Exception:
-        return {
-            "ai_message": "Neural link unstable. I've noted your symptoms and I'm analyzing the telemetry.",
-            "follow_up_question": "Can you describe the onset of these symptoms?",
-            "session_id": sid,
-            "timestamp": ts,
-        }
+        out = rule_based_triage(request.message, request.patient_context, sid)
+        out["ai_message"] = (
+            "Neural link unstable; applied deterministic triage rules. "
+            + out["ai_message"]
+        )
+        out["timestamp"] = ts
+        return out
+
 
 @app.get("/health")
 async def health():
-    return {"status": "healthy", "system": "VITALIS_CORE_ACTIVE"}
+    return {"status": "healthy", "system": "VITALIS_TRIAGE_ACTIVE"}

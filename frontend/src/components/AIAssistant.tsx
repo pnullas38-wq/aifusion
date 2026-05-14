@@ -2,8 +2,24 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, User, Brain, Mic, Sparkles, ChevronRight, Loader2 } from "lucide-react";
+import {
+  Send,
+  Brain,
+  Mic,
+  Sparkles,
+  Loader2,
+  ChevronDown,
+  ChevronUp,
+  Stethoscope,
+  AlertTriangle,
+  Home,
+  Building2,
+  Siren,
+  Globe2,
+} from "lucide-react";
 import { sendTriageMessage } from "@/lib/api";
+import { runLocalTriage } from "@/lib/triageEngine";
+import type { PatientTriageContext, TriageResponse } from "@/lib/types";
 
 interface Message {
   id: string;
@@ -11,29 +27,50 @@ interface Message {
   text: string;
 }
 
-const AI_RESPONSES: Record<string, string> = {
-  default: "Analyzing biometric resonance data... Current readings indicate optimal metabolic efficiency. Suggesting 400ml hydration within the next 15 minutes.",
-  pulse: "Cardiac rhythm detected. BPM: 72. Variability: 45ms. Sinus rhythm is consistent. No immediate cardiovascular risk detected.",
-  risk: "Aggregating global health datasets... Neural risk assessment: 2.4%. All systems operating within standard deviations of optimal health.",
-  sync: "Establishing clinical synchronization... Connection stable. Encrypted bio-data transmitted to medical node. Synchronization complete.",
-  nutrient: "Spectral analysis suggest a slight deficiency in Magnesium. Recommend dietary adjustment with leafy greens or specialized supplementation.",
-  heart: "Cardiovascular Analysis: Potential detected markers for Hypertrophic Cardiomyopathy. Suggesting immediate Doppler Echo-cardiogram and beta-blocker protocol adjustment.",
-  diabetes: "Metabolic Profiling: Glucose spikes detected in recent telemetry. Analyzing insulin sensitivity node... Suggesting a continuous glucose monitor (CGM) link and low-GI nutritional recalibration.",
-  cancer: "Oncological Surveillance: Neural scan identifies abnormal cellular resonance in the lymphatic sector. Protocol alpha-1 initiated. Specialized biopsy recommended immediately.",
-  fever: "Thermodynamic Warning: System core temperature elevated to 39.2°C. Identifying viral/bacterial signatures... Initializing leukocyte optimization protocol. Hydrate with electrolytes immediately.",
-  covid: "Respiratory Scan: Viral RNA signature identified. Pulmonary efficiency reduced by 14%. Initializing cytokine storm prevention protocol. Quarantine mode active.",
-  flu: "Pathogen Alert: Influenza-type markers detected. Neural link indicates high systemic inflammation. Recommend rest and anti-viral synchronization.",
-  stroke: "Cerebrovascular Warning: Asymmetric neural firing detected in the left hemisphere. High risk of ischemic event. EMERGENCY: Dispatching neural-stenting drone and initiating immediate hospital sync.",
-  asthma: "Pulmonary Report: Bronchial constriction detected. Oxygen saturation at 91%. Activating inhaler synchronization node. Maintain deep-breathing protocols.",
-  liver: "Hepatic Diagnostics: Elevated enzyme resonance detected (ALT/AST). Potential toxic overload. Initiating detox-node link. Avoid ethanol-based substances for 72 hours."
-};
+const TRIAGE_EVENT = "v-triage-update";
+
+function careLevelLabel(level: TriageResponse["care_level"]): string {
+  if (level === "emergency_room") return "Emergency room";
+  if (level === "clinic_visit") return "Clinic visit";
+  return "Home care";
+}
+
+function CareBadge({ level }: { level: TriageResponse["care_level"] }) {
+  const cfg =
+    level === "emergency_room"
+      ? { Icon: Siren, className: "bg-v-red/20 text-v-red border-v-red/30" }
+      : level === "clinic_visit"
+        ? { Icon: Building2, className: "bg-amber-500/15 text-amber-300 border-amber-500/30" }
+        : { Icon: Home, className: "bg-v-emerald/15 text-v-emerald border-v-emerald/30" };
+  const I = cfg.Icon;
+  return (
+    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-[10px] font-mono uppercase tracking-widest ${cfg.className}`}>
+      <I size={14} />
+      {careLevelLabel(level)}
+    </div>
+  );
+}
 
 export default function AIAssistant() {
   const [messages, setMessages] = useState<Message[]>([
-    { id: "1", role: "ai", text: "VITALIS_CORE online. Neural synchronization complete. How can I assist with your physiological optimization today?" }
+    {
+      id: "1",
+      role: "ai",
+      text: "I am your AI Healthcare Triage Assistant. Share symptoms in your own words (voice or text). Optional: expand Patient profile so NLP triage can use allergies, medications, and age band. This is preliminary guidance—not a diagnosis.",
+    },
   ]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [showHistory, setShowHistory] = useState(true);
+  const [patientContext, setPatientContext] = useState<PatientTriageContext>({
+    age_band: undefined,
+    chronic_conditions: "",
+    allergies: "",
+    medications: "",
+    language: "en",
+  });
+  const [lastTriage, setLastTriage] = useState<TriageResponse | null>(null);
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const sessionIdRef = useRef<string | undefined>(undefined);
   const inputRef = useRef("");
@@ -43,36 +80,11 @@ export default function AIAssistant() {
     inputRef.current = input;
   }, [input]);
 
-  const buildLocalReply = useCallback((textToSend: string): string => {
-    let responseText = AI_RESPONSES.default;
-    const lowerText = textToSend.toLowerCase();
-
-    const matches = Object.keys(AI_RESPONSES).filter((key) => lowerText.includes(key));
-    if (matches.length > 0) {
-      const bestMatch = matches.sort((a, b) => b.length - a.length)[0];
-      responseText = AI_RESPONSES[bestMatch];
-    } else if (lowerText.includes("pain") || lowerText.includes("ache") || lowerText.includes("hurt")) {
-      responseText =
-        "Neural analysis confirms localized nociceptive signaling. Cross-referencing current telemetry... Suggesting an immediate anti-inflammatory protocol and thermal regulation of the affected sector.";
-    } else if (lowerText.includes("tired") || lowerText.includes("sleepy") || lowerText.includes("fatigue")) {
-      responseText =
-        "Metabolic telemetry indicates a dip in ATP production and elevated cortisol levels. Recommend 20 minutes of deep-wave neural rest and hydration with electrolyte-enhanced fluids.";
-    } else if (lowerText.includes("hello") || lowerText.includes("hi") || lowerText.includes("hey")) {
-      responseText =
-        "Salutations. Vitalis Core is fully synchronized with your biological markers. I am ready to assist with any physiological optimization or diagnostic queries.";
-    } else if (lowerText.includes("help") || lowerText.includes("who")) {
-      responseText = "I am VITALIS_CORE, your decentralized biological intelligence node monitoring your physiological resonance.";
-    } else {
-      responseText = `VITALIS_CORE analysis: Input "${textToSend}" registered. Neural synchronization at 98.4%. Please provide specific biological markers for a deeper diagnostic.`;
-    }
-    return responseText;
-  }, []);
-
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, isTyping]);
+  }, [messages, isTyping, lastTriage]);
 
   const [isListening, setIsListening] = useState(false);
 
@@ -86,36 +98,57 @@ export default function AIAssistant() {
     if (textOverride == null) setInput("");
     setIsTyping(true);
 
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 400 + Math.random() * 400));
+    const ctxPayload: PatientTriageContext = {
+      ...patientContext,
+      age_band: patientContext.age_band || undefined,
+      chronic_conditions: patientContext.chronic_conditions?.trim() || undefined,
+      allergies: patientContext.allergies?.trim() || undefined,
+      medications: patientContext.medications?.trim() || undefined,
+    };
 
-      let responseText: string;
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 350 + Math.random() * 250));
+
+      let triage: TriageResponse;
 
       try {
-        const triage = await sendTriageMessage(textToSend, sessionIdRef.current);
+        triage = await sendTriageMessage({
+          message: textToSend,
+          sessionId: sessionIdRef.current,
+          patientContext: ctxPayload,
+        });
         sessionIdRef.current = triage.session_id || sessionIdRef.current;
-        const follow = triage.follow_up_question?.trim();
-        const body = triage.ai_message?.trim() || "";
-        responseText = follow ? `${body}\n\n${follow}` : body;
-        if (!responseText) throw new Error("empty triage");
       } catch {
-        responseText = buildLocalReply(textToSend);
+        const sid = sessionIdRef.current || crypto.randomUUID();
+        sessionIdRef.current = sid;
+        triage = runLocalTriage(textToSend, ctxPayload, sid);
+      }
+
+      const follow = triage.follow_up_question?.trim();
+      const body = triage.ai_message?.trim() || "";
+      const responseText = follow ? `${body}\n\n${follow}` : body;
+
+      setLastTriage(triage);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent(TRIAGE_EVENT, { detail: { triage } }));
+        if (triage.is_emergency) {
+          window.dispatchEvent(new CustomEvent("v-emergency-trigger", { detail: { active: true } }));
+        }
       }
 
       const aiMsg: Message = {
         id: `a-${Date.now()}`,
         role: "ai",
-        text: responseText,
+        text: responseText || "No response text returned.",
       };
-
       setMessages((prev) => [...prev, aiMsg]);
 
-      const speak = textOverride == null && typeof responseText === "string" && responseText.length > 0;
+      const speak = textOverride == null && responseText.length > 0;
       if ("speechSynthesis" in window && speak) {
         try {
-          const utterance = new SpeechSynthesisUtterance(responseText.slice(0, 280));
-          utterance.rate = 1.05;
-          utterance.pitch = 0.9;
+          const utterance = new SpeechSynthesisUtterance(responseText.slice(0, 320));
+          utterance.rate = 1.02;
+          utterance.pitch = 0.95;
           window.speechSynthesis.cancel();
           window.speechSynthesis.speak(utterance);
         } catch (e) {
@@ -129,14 +162,14 @@ export default function AIAssistant() {
         {
           id: `a-err-${Date.now()}`,
           role: "ai",
-          text: "Neural channel interrupted. Please try again in a moment.",
+          text: "Channel interrupted. Please retry. If symptoms are severe, contact emergency services.",
         },
       ]);
     } finally {
       sendingRef.current = false;
       setIsTyping(false);
     }
-  }, [buildLocalReply]);
+  }, [patientContext]);
 
   const startListening = useCallback(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -148,7 +181,7 @@ export default function AIAssistant() {
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
     recognition.interimResults = false;
-    recognition.lang = "en-US";
+    recognition.lang = patientContext.language === "hi" ? "hi-IN" : patientContext.language === "kn" ? "kn-IN" : "en-US";
 
     recognition.onstart = () => setIsListening(true);
     recognition.onend = () => setIsListening(false);
@@ -161,124 +194,260 @@ export default function AIAssistant() {
     };
 
     recognition.start();
-  }, [handleSend]);
+  }, [handleSend, patientContext.language]);
 
   return (
-    <div className="glass rounded-[40px] flex flex-col h-[600px] w-full max-w-2xl mx-auto overflow-hidden shadow-2xl relative">
-      {/* Header */}
-      <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-v-cyan/10 flex items-center justify-center relative group">
-             <Brain className="text-v-cyan group-hover:scale-110 transition-transform" size={24} />
-             <div className="absolute inset-0 bg-v-cyan blur-xl opacity-20" />
+    <div className="glass rounded-[40px] flex flex-col h-[720px] w-full max-w-2xl mx-auto overflow-hidden shadow-2xl relative">
+      <div className="p-5 border-b border-white/5 flex items-center justify-between bg-white/[0.02] shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-2xl bg-v-cyan/10 flex items-center justify-center relative">
+            <Brain className="text-v-cyan" size={22} />
           </div>
           <div>
-            <h3 className="font-bold tracking-tight uppercase italic">Vitalis_Core_AI</h3>
-            <span className="text-[9px] font-mono text-v-emerald uppercase tracking-widest">Active_Neural_Link</span>
+            <h3 className="font-bold tracking-tight uppercase italic text-sm">Healthcare Triage Assistant</h3>
+            <span className="text-[8px] font-mono text-v-emerald uppercase tracking-widest">NLP · Risk · Care levels</span>
           </div>
         </div>
-        <div className="flex gap-2">
-           <div className="w-2 h-2 rounded-full bg-v-emerald animate-pulse" />
-           <div className="w-2 h-2 rounded-full bg-v-cyan animate-pulse delay-75" />
-           <div className="w-2 h-2 rounded-full bg-v-blue animate-pulse delay-150" />
+        <div className="flex gap-1.5">
+          <div className="w-1.5 h-1.5 rounded-full bg-v-emerald animate-pulse" />
+          <div className="w-1.5 h-1.5 rounded-full bg-v-cyan animate-pulse" />
         </div>
       </div>
 
-      {/* Messages */}
-      <div 
-        ref={scrollRef}
-        className="flex-1 p-6 overflow-y-auto space-y-6 scrollbar-hide"
-      >
-        <AnimatePresence mode="popLayout">
-          {messages.map((msg) => (
+      {/* Patient symptom & history collection (structured) */}
+      <div className="border-b border-white/5 bg-black/20 shrink-0">
+        <button
+          type="button"
+          onClick={() => setShowHistory((s) => !s)}
+          className="w-full flex items-center justify-between px-5 py-3 text-left hover:bg-white/[0.03] transition-colors"
+        >
+          <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-v-cyan flex items-center gap-2">
+            <Stethoscope size={14} />
+            Patient profile & medical history
+          </span>
+          {showHistory ? <ChevronUp size={16} className="text-v-muted" /> : <ChevronDown size={16} className="text-v-muted" />}
+        </button>
+        <AnimatePresence initial={false}>
+          {showHistory && (
             <motion.div
-              key={msg.id}
-              initial={{ opacity: 0, y: 10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
             >
-              <div className={`max-w-[80%] p-5 rounded-[24px] ${
-                msg.role === "user" 
-                  ? "bg-v-cyan/10 border border-v-cyan/20 text-v-text rounded-tr-none shadow-[0_0_20px_rgba(0,212,255,0.05)]" 
-                  : "bg-white/[0.03] border border-white/5 text-v-text rounded-tl-none"
-              }`}>
-                <p className="text-sm leading-relaxed font-light">{msg.text}</p>
-                <div className="mt-3 flex items-center gap-2">
-                   <span className="text-[8px] font-mono text-v-muted uppercase tracking-widest">
-                     {msg.role === "user" ? "Auth_Patient" : "Core_Intelligence"}
-                   </span>
+              <div className="px-5 pb-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[9px] font-mono text-v-muted uppercase block mb-1">Age band</label>
+                  <select
+                    value={patientContext.age_band || ""}
+                    onChange={(e) =>
+                      setPatientContext((c) => ({
+                        ...c,
+                        age_band: (e.target.value || undefined) as PatientTriageContext["age_band"],
+                      }))
+                    }
+                    className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-xs"
+                  >
+                    <option value="">Prefer not to say</option>
+                    <option value="child">Child</option>
+                    <option value="adult">Adult</option>
+                    <option value="senior">Senior</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[9px] font-mono text-v-muted uppercase block mb-1">Voice / NLP language</label>
+                  <select
+                    value={patientContext.language || "en"}
+                    onChange={(e) =>
+                      setPatientContext((c) => ({
+                        ...c,
+                        language: e.target.value as PatientTriageContext["language"],
+                      }))
+                    }
+                    className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-xs"
+                  >
+                    <option value="en">English</option>
+                    <option value="hi">Hindi (voice + server NLP hint)</option>
+                    <option value="kn">Kannada (voice + server NLP hint)</option>
+                  </select>
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-[9px] font-mono text-v-muted uppercase block mb-1">Chronic conditions</label>
+                  <input
+                    value={patientContext.chronic_conditions || ""}
+                    onChange={(e) => setPatientContext((c) => ({ ...c, chronic_conditions: e.target.value }))}
+                    placeholder="e.g. asthma, diabetes, hypertension"
+                    className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-mono text-v-muted uppercase block mb-1">Allergies</label>
+                  <input
+                    value={patientContext.allergies || ""}
+                    onChange={(e) => setPatientContext((c) => ({ ...c, allergies: e.target.value }))}
+                    placeholder="Drug or food allergies"
+                    className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-mono text-v-muted uppercase block mb-1">Medications</label>
+                  <input
+                    value={patientContext.medications || ""}
+                    onChange={(e) => setPatientContext((c) => ({ ...c, medications: e.target.value }))}
+                    placeholder="Current medications"
+                    className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-xs"
+                  />
                 </div>
               </div>
-            </motion.div>
-          ))}
-          
-          {isTyping && (
-            <motion.div
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="flex justify-start"
-            >
-               <div className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl rounded-tl-none flex items-center gap-3">
-                  <Loader2 className="text-v-cyan animate-spin" size={16} />
-                  <span className="text-[8px] font-mono text-v-cyan uppercase tracking-widest animate-pulse">Neural_Processing...</span>
-               </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* Input */}
-      <div className="p-6 bg-white/[0.02] border-t border-white/5">
-        <div className="relative flex items-center gap-3">
-          <button 
-            onClick={startListening}
-            className={`p-3 rounded-2xl transition-all ${
-              isListening 
-                ? "bg-v-red text-v-bg animate-pulse shadow-[0_0_20px_rgba(255,34,68,0.4)]" 
-                : "glass hover:bg-v-cyan/10 text-v-cyan"
+      {/* Last triage summary — risk scoring, care recommendation, emergency */}
+      <AnimatePresence>
+        {lastTriage && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className={`mx-4 mt-3 rounded-2xl border p-4 shrink-0 ${
+              lastTriage.is_emergency ? "border-v-red/40 bg-v-red/10" : "border-white/10 bg-white/[0.03]"
             }`}
           >
-             {isListening ? <Mic className="animate-bounce" size={20} /> : <Mic size={20} />}
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <CareBadge level={lastTriage.care_level} />
+              <span className="text-[10px] font-mono text-v-muted uppercase">
+                Risk {lastTriage.risk_score}/100 · {lastTriage.severity}
+              </span>
+              {lastTriage.is_emergency && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-mono uppercase text-v-red">
+                  <AlertTriangle size={12} />
+                  Emergency pattern
+                </span>
+              )}
+            </div>
+            <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden mb-2">
+              <div
+                className={`h-full rounded-full transition-all ${
+                  lastTriage.risk_score >= 75 ? "bg-v-red" : lastTriage.risk_score >= 45 ? "bg-amber-400" : "bg-v-emerald"
+                }`}
+                style={{ width: `${lastTriage.risk_score}%` }}
+              />
+            </div>
+            <p className="text-[11px] text-v-muted font-light leading-relaxed mb-2">{lastTriage.care_recommendation_title}</p>
+            {lastTriage.nlp_symptoms.length > 0 && (
+              <p className="text-[10px] font-mono text-v-cyan/80 mb-1">
+                NLP symptoms: {lastTriage.nlp_symptoms.slice(0, 8).join(", ")}
+              </p>
+            )}
+            {lastTriage.red_flags.length > 0 && (
+              <ul className="text-[10px] text-amber-200/90 list-disc pl-4 space-y-0.5">
+                {lastTriage.red_flags.map((r, i) => (
+                  <li key={i}>{r}</li>
+                ))}
+              </ul>
+            )}
+            <p className="text-[9px] text-v-muted/80 mt-2 flex items-start gap-1.5">
+              <Globe2 size={12} className="shrink-0 mt-0.5 text-v-cyan/60" />
+              {lastTriage.accessibility_note}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div ref={scrollRef} className="flex-1 min-h-0 p-5 overflow-y-auto space-y-4 scrollbar-hide">
+        <AnimatePresence mode="popLayout">
+          {messages.map((msg) => (
+            <motion.div
+              key={msg.id}
+              initial={{ opacity: 0, y: 10, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+            >
+              <div
+                className={`max-w-[88%] p-4 rounded-[20px] ${
+                  msg.role === "user"
+                    ? "bg-v-cyan/10 border border-v-cyan/20 text-v-text rounded-tr-sm"
+                    : "bg-white/[0.03] border border-white/5 text-v-text rounded-tl-sm"
+                }`}
+              >
+                <p className="text-sm leading-relaxed font-light whitespace-pre-wrap">{msg.text}</p>
+                <span className="text-[8px] font-mono text-v-muted uppercase tracking-widest mt-2 block">
+                  {msg.role === "user" ? "Patient" : "Triage assistant"}
+                </span>
+              </div>
+            </motion.div>
+          ))}
+
+          {isTyping && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
+              <div className="bg-white/[0.03] border border-white/5 p-3 rounded-2xl rounded-tl-sm flex items-center gap-3">
+                <Loader2 className="text-v-cyan animate-spin" size={16} />
+                <span className="text-[8px] font-mono text-v-cyan uppercase tracking-widest">Analyzing symptoms…</span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      <div className="p-5 bg-white/[0.02] border-t border-white/5 shrink-0">
+        <div className="relative flex items-center gap-2">
+          <button
+            type="button"
+            onClick={startListening}
+            className={`p-3 rounded-2xl transition-all shrink-0 ${
+              isListening ? "bg-v-red text-v-bg animate-pulse" : "glass hover:bg-v-cyan/10 text-v-cyan"
+            }`}
+            title="Voice-enabled assistant"
+          >
+            {isListening ? <Mic className="animate-bounce" size={20} /> : <Mic size={20} />}
           </button>
-          <input 
-            type="text" 
+          <input
+            type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
-            placeholder="Describe your physiological state..."
-            className="w-full bg-white/[0.03] border border-white/10 rounded-2xl px-6 py-4 text-sm focus:outline-none focus:border-v-cyan/40 transition-all font-light placeholder:text-v-muted/50"
+            placeholder="Describe symptoms (multi-turn conversation supported)…"
+            className="flex-1 min-w-0 bg-white/[0.03] border border-white/10 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-v-cyan/40 font-light placeholder:text-v-muted/50"
           />
-          <button 
+          <button
+            type="button"
             onClick={() => handleSend()}
             disabled={isTyping}
-            className="p-4 rounded-2xl bg-v-cyan text-v-bg hover:scale-105 active:scale-95 transition-all shadow-lg disabled:opacity-50 disabled:scale-100"
+            className="p-3 rounded-2xl bg-v-cyan text-v-bg hover:scale-105 active:scale-95 transition-all shadow-lg disabled:opacity-50 shrink-0"
           >
-             <Send size={20} />
+            <Send size={20} />
           </button>
         </div>
-        
-        <div className="mt-6 flex items-center gap-4 overflow-x-auto pb-2 scrollbar-hide">
-           {[
-             { label: "Analyze Pulse", key: "pulse" },
-             { label: "Risk Prediction", key: "risk" },
-             { label: "Clinical Sync", key: "sync" },
-             { label: "Nutrient Check", key: "nutrient" }
-           ].map((tag) => (
-             <button 
-               key={tag.key} 
-               onClick={() => handleSend(tag.label)}
-               disabled={isTyping}
-               className="flex-shrink-0 px-4 py-2 rounded-xl glass border-white/5 text-[10px] font-mono text-v-muted hover:text-v-cyan hover:border-v-cyan/30 transition-all uppercase tracking-widest flex items-center gap-2 group disabled:opacity-30"
-             >
-                <Sparkles size={12} className="group-hover:rotate-12 transition-transform" />
-                {tag.label}
-             </button>
-           ))}
+
+        <p className="text-[9px] text-v-muted/70 mt-2 font-mono text-center">
+          Educational demo — not a substitute for licensed medical care. Prioritizes early intervention & appropriate care levels.
+        </p>
+
+        <div className="mt-4 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
+          {[
+            { label: "Mild cold symptoms", key: "cold" },
+            { label: "Fever for 3 days", key: "fever" },
+            { label: "Chest pain on exertion", key: "chest" },
+            { label: "Shortness of breath", key: "breath" },
+            { label: "Panic / anxiety spike", key: "mh" },
+          ].map((tag) => (
+            <button
+              key={tag.key}
+              type="button"
+              onClick={() => handleSend(tag.label)}
+              disabled={isTyping}
+              className="flex-shrink-0 px-3 py-2 rounded-xl glass border-white/5 text-[9px] font-mono text-v-muted hover:text-v-cyan hover:border-v-cyan/30 uppercase tracking-wider flex items-center gap-1.5 disabled:opacity-30"
+            >
+              <Sparkles size={11} />
+              {tag.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Background HUD elements */}
-      <div className="absolute bottom-0 right-0 w-full h-px bg-gradient-to-r from-transparent via-v-cyan/20 to-transparent shadow-[0_0_20px_rgba(0,212,255,0.2)]" />
+      <div className="absolute bottom-0 right-0 w-full h-px bg-gradient-to-r from-transparent via-v-cyan/20 to-transparent" />
     </div>
   );
 }

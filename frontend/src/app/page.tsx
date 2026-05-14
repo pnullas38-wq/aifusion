@@ -294,8 +294,8 @@ export default function Home() {
                       <span className="text-glow font-light not-italic text-v-cyan">Neural Core.</span>
                     </h2>
                     <p className="text-v-muted text-xl leading-relaxed max-w-xl font-light">
-                      VITALIS CORE doesn't just process words—it analyzes the semantic 
-                      resonance of your physiological symptoms to predict high-risk anomalies.
+                      AI-powered symptom triage with NLP understanding, risk scoring, and care levels (home care, clinic, ER).
+                      Collect optional medical history, hold a multi-turn conversation, and sync summaries to the health dashboard—built for accessibility in low-connectivity settings.
                     </p>
                     <div className="flex gap-4">
                        <div className="p-4 rounded-2xl glass border-white/5 flex flex-col gap-1">

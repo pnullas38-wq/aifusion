@@ -5,8 +5,8 @@ import { Brain, Zap, Shield, Globe, Activity, HeartPulse, Cpu, Lock } from "luci
 
 const features = [
   {
-    title: "Neural Diagnostics",
-    desc: "Real-time analysis of physiological resonance through deep neural networks.",
+    title: "AI Symptom Triage",
+    desc: "NLP medical conversation, risk scoring, emergency detection, and home / clinic / ER care recommendations with multi-turn follow-up.",
     icon: Brain,
     color: "from-cyan-500 to-blue-500",
   },
