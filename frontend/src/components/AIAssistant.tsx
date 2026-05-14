@@ -36,6 +36,12 @@ export default function AIAssistant() {
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const sessionIdRef = useRef<string | undefined>(undefined);
+  const inputRef = useRef("");
+  const sendingRef = useRef(false);
+
+  useEffect(() => {
+    inputRef.current = input;
+  }, [input]);
 
   const buildLocalReply = useCallback((textToSend: string): string => {
     let responseText = AI_RESPONSES.default;
@@ -70,50 +76,28 @@ export default function AIAssistant() {
 
   const [isListening, setIsListening] = useState(false);
 
-  const startListening = () => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert("Voice recognition is not supported in this browser. Please use Chrome or Edge.");
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = 'en-US';
-
-    recognition.onstart = () => setIsListening(true);
-    recognition.onend = () => setIsListening(false);
-    recognition.onerror = () => setIsListening(false);
-    
-    recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      setInput(transcript);
-      handleSend(transcript);
-    };
-
-    recognition.start();
-  };
-
   const handleSend = useCallback(async (textOverride?: string) => {
-    const textToSend = textOverride || input;
-    if (!textToSend.trim() || isTyping) return;
+    const textToSend = (textOverride ?? inputRef.current).trim();
+    if (!textToSend || sendingRef.current) return;
 
+    sendingRef.current = true;
     const userMsg: Message = { id: `u-${Date.now()}`, role: "user", text: textToSend };
     setMessages((prev) => [...prev, userMsg]);
-    if (!textOverride) setInput("");
+    if (textOverride == null) setInput("");
     setIsTyping(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 600 + Math.random() * 400));
+      await new Promise((resolve) => setTimeout(resolve, 400 + Math.random() * 400));
 
       let responseText: string;
 
       try {
         const triage = await sendTriageMessage(textToSend, sessionIdRef.current);
-        sessionIdRef.current = triage.session_id;
+        sessionIdRef.current = triage.session_id || sessionIdRef.current;
         const follow = triage.follow_up_question?.trim();
-        responseText = follow ? `${triage.ai_message}\n\n${follow}` : triage.ai_message;
+        const body = triage.ai_message?.trim() || "";
+        responseText = follow ? `${body}\n\n${follow}` : body;
+        if (!responseText) throw new Error("empty triage");
       } catch {
         responseText = buildLocalReply(textToSend);
       }
@@ -126,11 +110,13 @@ export default function AIAssistant() {
 
       setMessages((prev) => [...prev, aiMsg]);
 
-      if ("speechSynthesis" in window && !textOverride) {
+      const speak = textOverride == null && typeof responseText === "string" && responseText.length > 0;
+      if ("speechSynthesis" in window && speak) {
         try {
-          const utterance = new SpeechSynthesisUtterance(responseText.substring(0, 150));
-          utterance.rate = 1.1;
-          utterance.pitch = 0.85;
+          const utterance = new SpeechSynthesisUtterance(responseText.slice(0, 280));
+          utterance.rate = 1.05;
+          utterance.pitch = 0.9;
+          window.speechSynthesis.cancel();
           window.speechSynthesis.speak(utterance);
         } catch (e) {
           console.error("Speech Synthesis Error:", e);
@@ -138,10 +124,44 @@ export default function AIAssistant() {
       }
     } catch (err) {
       console.error("Chatbot Core Error:", err);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `a-err-${Date.now()}`,
+          role: "ai",
+          text: "Neural channel interrupted. Please try again in a moment.",
+        },
+      ]);
     } finally {
+      sendingRef.current = false;
       setIsTyping(false);
     }
-  }, [buildLocalReply, isTyping, input]);
+  }, [buildLocalReply]);
+
+  const startListening = useCallback(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Voice recognition is not supported in this browser. Please use Chrome or Edge.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = "en-US";
+
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend = () => setIsListening(false);
+    recognition.onerror = () => setIsListening(false);
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript as string;
+      setInput(transcript);
+      void handleSend(transcript);
+    };
+
+    recognition.start();
+  }, [handleSend]);
 
   return (
     <div className="glass rounded-[40px] flex flex-col h-[600px] w-full max-w-2xl mx-auto overflow-hidden shadow-2xl relative">
