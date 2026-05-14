@@ -40,3 +40,5 @@ VITALIS AI utilizes quantum-locked decentralized storage for hyper-secure health
 
 ---
 *VITALIS AI - Engineering Biological Excellence.*
+
+# fusionai
