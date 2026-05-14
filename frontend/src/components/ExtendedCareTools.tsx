@@ -6,6 +6,7 @@ import { downloadAiHealthReportMarkdown } from "@/lib/healthReport";
 import { copyEhrJsonToClipboard, downloadEhrJsonBundle } from "@/lib/ehrExport";
 import { t, type UILang } from "@/lib/triageLocale";
 import { getStoredUILang } from "@/lib/uiLang";
+import DiseaseVideoConsult from "@/components/DiseaseVideoConsult";
 
 /** Google Meet, Zoom, Teams, etc. send headers that block <iframe>; Jitsi / 8x8 usually work. */
 function telehealthEmbedMode(url: string): "iframe" | "blocked" {
@@ -115,6 +116,8 @@ export default function ExtendedCareTools() {
           </div>
         </div>
       </div>
+
+      <DiseaseVideoConsult />
 
       {ehrToast && <p className="text-[11px] font-mono text-v-emerald">{ehrToast}</p>}
 

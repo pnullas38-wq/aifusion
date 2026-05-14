@@ -83,6 +83,12 @@ type Dict = {
   emergency911LocError: string;
   emergency911LocUnavailable: string;
   emergency911Note: string;
+  diseaseYoutubeTitle: string;
+  diseaseYoutubeHint: string;
+  diseaseYoutubePlaceholder: string;
+  diseaseYoutubeButton: string;
+  diseaseYoutubeCuratedNote: string;
+  diseaseYoutubeInputRequired: string;
 };
 
 const en: Dict = {
@@ -171,6 +177,13 @@ const en: Dict = {
   emergency911LocUnavailable: "Geolocation not available in this environment.",
   emergency911Note:
     "911 applies where supported (e.g. US/Canada). SMS-to-911 only works on supported carriers. VITALIS does not contact dispatch automatically — you place the call or text.",
+  diseaseYoutubeTitle: "Condition → YouTube consultation",
+  diseaseYoutubeHint:
+    "Enter a disease or topic: we open YouTube search in a new tab for patient-education style videos. If NEXT_PUBLIC_DISEASE_VIDEO_MAP lists this condition, a curated preview also plays below.",
+  diseaseYoutubePlaceholder: "e.g. diabetes, asthma, migraine",
+  diseaseYoutubeButton: "Open YouTube videos",
+  diseaseYoutubeCuratedNote: "Curated preview (from your env map)",
+  diseaseYoutubeInputRequired: "Enter a condition name first.",
 };
 
 const hi: Dict = {
@@ -258,6 +271,13 @@ const hi: Dict = {
   emergency911LocUnavailable: "इस वातावरण में जियोलोकेशन उपलब्ध नहीं।",
   emergency911Note:
     "911 जहाँ समर्थित हो (जैसे US/Canada)। SMS-to-911 केवल समर्थित नेटवर्क पर। VITALIS स्वयं डिस्पैच से संपर्क नहीं करता।",
+  diseaseYoutubeTitle: "स्थिति → YouTube परामर्श",
+  diseaseYoutubeHint:
+    "रोग या विषय लिखें: नए टैब में रोगी-शिक्षा शैली के वीडियो के लिए YouTube खोलें। यदि मानचित्र में यह स्थिति है तो नीचे पूर्वावलोकन भी चलेगा।",
+  diseaseYoutubePlaceholder: "उदा. मधुमेह, दमा, माइग्रेन",
+  diseaseYoutubeButton: "YouTube वीडियो खोलें",
+  diseaseYoutubeCuratedNote: "चयनित पूर्वावलोकन (आपके env मानचित्र से)",
+  diseaseYoutubeInputRequired: "पहले स्थिति का नाम लिखें।",
 };
 
 const kn: Dict = {
@@ -345,6 +365,13 @@ const kn: Dict = {
   emergency911LocUnavailable: "ಈ ಪರಿಸರದಲ್ಲಿ ಜಿಯೋಲೊಕೇಶನ್ ಇಲ್ಲ.",
   emergency911Note:
     "911 ಅಮೆರಿಕಾ/ಕೆನಡಾದಲ್ಲಿ. SMS-to-911 ಬೆಂಬಲಿತ ವಾಹಕಗಳಲ್ಲಿ ಮಾತ್ರ. VITALIS ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಡಿಸ್ಪ್ಯಾಚ್ ಅನ್ನು ಸಂಪರ್ಕಿಸುವುದಿಲ್ಲ.",
+  diseaseYoutubeTitle: "ಸ್ಥಿತಿ → YouTube ಸಮಾಲೋಚನೆ",
+  diseaseYoutubeHint:
+    "ರೋಗ ಅಥವಾ ವಿಷಯ ನಮೂದಿಸಿ: ರೋಗಿ ಶಿಕ್ಷಣಾ ವೀಡಿಯೊಗಳಿಗಾಗಿ ಹೊಸ ಟ್ಯಾಬ್‌ನಲ್ಲಿ YouTube ತೆರೆಯುತ್ತದೆ. ನಿಮ್ಮ env ನಕ್ಷೆಯಲ್ಲಿ ಇದ್ದರೆ ಕೆಳಗೆ ಪೂರ್ವವೀಕ್ಷಣೆ.",
+  diseaseYoutubePlaceholder: "ಉದಾ. ಮಧುಮೇಹ, ಆಸ್ತ್ಮಾ, ಮೈಗ್ರೇನ್",
+  diseaseYoutubeButton: "YouTube ವೀಡಿಯೊಗಳನ್ನು ತೆರೆಯಿರಿ",
+  diseaseYoutubeCuratedNote: "ಕ್ಯುರೇಟೆಡ್ ಪೂರ್ವವೀಕ್ಷಣೆ (env ನಕ್ಷೆಯಿಂದ)",
+  diseaseYoutubeInputRequired: "ಮೊದಲು ಸ್ಥಿತಿಯ ಹೆಸರು ನಮೂದಿಸಿ.",
 };
 
 const map: Record<UILang, Dict> = { en, hi, kn };

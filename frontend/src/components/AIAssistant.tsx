@@ -207,6 +207,17 @@ export default function AIAssistant() {
     recognition.start();
   }, [handleSend, patientContext.language]);
 
+  useEffect(() => {
+    const onPrefill = (e: Event) => {
+      const ce = e as CustomEvent<{ message?: string }>;
+      const msg = ce.detail?.message?.trim();
+      if (!msg) return;
+      void handleSend(msg);
+    };
+    window.addEventListener("v-prefill-triage", onPrefill as EventListener);
+    return () => window.removeEventListener("v-prefill-triage", onPrefill as EventListener);
+  }, [handleSend]);
+
   const L = patientContext.language || "en";
   const d = t(L);
 

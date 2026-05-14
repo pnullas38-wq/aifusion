@@ -48,8 +48,8 @@ export default function OutbreakPanel() {
         <div className="flex items-center gap-3">
           <Globe2 className="text-v-blue" size={26} />
           <div>
-            <h3 className="text-lg font-black italic uppercase tracking-tight">Predictive outbreak awareness</h3>
-            <p className="text-[10px] font-mono text-v-muted uppercase">India signal · public API proxy</p>
+            <h3 className="text-lg font-black italic uppercase tracking-tight">Predictive outbreak analysis</h3>
+            <p className="text-[10px] font-mono text-v-muted uppercase">India signal · public API proxy · situational trend</p>
           </div>
         </div>
         <button type="button" onClick={() => void load()} className="p-2 rounded-xl glass hover:bg-white/5 text-v-muted">

@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { Bell, Plus, Trash2, Clock } from "lucide-react";
 
+import { loadPatientContextSnapshot } from "@/lib/triagePersistence";
+
 const STORAGE = "VITALIS_MED_REMINDERS_v1";
 
 type Reminder = { id: string; name: string; time: string; enabled: boolean };
@@ -77,6 +79,27 @@ export default function MedicationReminders() {
     return () => clearInterval(id);
   }, [tick]);
 
+  const importFromProfile = () => {
+    const ctx = loadPatientContextSnapshot();
+    const raw = ctx?.medications?.trim();
+    if (!raw) return;
+    const names = raw
+      .split(/[,;\n]+/)
+      .map((x) => x.trim())
+      .filter(Boolean)
+      .slice(0, 12);
+    if (names.length === 0) return;
+    const existing = new Set(items.map((i) => i.name.toLowerCase()));
+    const next = [...items];
+    for (const name of names) {
+      if (existing.has(name.toLowerCase())) continue;
+      existing.add(name.toLowerCase());
+      next.push({ id: crypto.randomUUID(), name, time: "09:00", enabled: true });
+    }
+    setItems(next);
+    save(next);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -89,7 +112,7 @@ export default function MedicationReminders() {
           <Bell className="text-v-emerald" size={26} />
           <div>
             <h3 className="text-lg font-black italic uppercase tracking-tight">Medication reminders</h3>
-            <p className="text-[10px] font-mono text-v-muted uppercase">Local browser · daily time match</p>
+            <p className="text-[10px] font-mono text-v-muted uppercase">Local browser · time match · import from triage profile</p>
           </div>
         </div>
         {perm !== "unsupported" && perm !== "granted" && (
@@ -110,6 +133,14 @@ export default function MedicationReminders() {
         <button type="button" onClick={add} className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-v-emerald/20 text-v-emerald border border-v-emerald/30 text-xs font-mono uppercase">
           <Plus size={16} />
           Add
+        </button>
+        <button
+          type="button"
+          onClick={importFromProfile}
+          title="Uses medications from the triage patient profile (saved in this browser)"
+          className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-v-cyan/25 text-v-cyan text-xs font-mono uppercase hover:bg-v-cyan/10"
+        >
+          Import from profile
         </button>
       </div>
 

@@ -31,6 +31,8 @@ const HumanBodyScene = dynamic(() => import("@/components/HumanBodyScene"), { ss
 const BiometricScanner = dynamic(() => import("@/components/BiometricScanner"), { ssr: false });
 const ExtendedCareTools = dynamic(() => import("@/components/ExtendedCareTools"), { ssr: false });
 const ShareReportPanel = dynamic(() => import("@/components/ShareReportPanel"), { ssr: false });
+const YouTubeSection = dynamic(() => import("@/components/YouTubeSection"), { ssr: false });
+const ClinicalHubSection = dynamic(() => import("@/components/ClinicalHubSection"), { ssr: false });
 
 function BootSequence({ onComplete }: { onComplete: () => void }) {
   const [progress, setProgress] = useState(0);
@@ -172,7 +174,7 @@ export default function Home() {
           </div>
 
           <div className="hidden md:flex items-center gap-10">
-            {["Features", "Triage", "Analytics", "Safety"].map((item) => (
+            {["Features", "Triage", "Clinical", "Analytics", "Videos", "Safety"].map((item) => (
               <a key={item} href={`#${item.toLowerCase()}`} className="text-[10px] font-mono uppercase tracking-[0.2em] text-v-muted hover:text-v-cyan transition-colors relative group">
                 {item}
                 <span className="absolute -bottom-1 left-0 w-0 h-px bg-v-cyan group-hover:w-full transition-all duration-300" />
@@ -317,6 +319,8 @@ export default function Home() {
               </div>
             </section>
 
+            <ClinicalHubSection />
+
             <section id="analytics" className="relative z-10 px-6 py-40 bg-white/[0.01]">
               <div className="max-w-7xl mx-auto mb-16">
                  <motion.div 
@@ -376,6 +380,8 @@ export default function Home() {
               </div>
               <HealthDashboard />
             </section>
+
+            <YouTubeSection />
 
             {/* Safety/CTA Section */}
             <section id="safety" className="relative z-10 py-60 flex flex-col items-center justify-center text-center px-6 overflow-hidden">
