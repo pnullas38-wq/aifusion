@@ -153,38 +153,66 @@ def rule_based_triage(message: str, ctx: Optional[PatientContext], sid: str) -> 
     if ctx and ctx.age_band == "senior" and care_level == "home_care" and risk_score < 40:
         risk_score = min(55, risk_score + 12)
 
-    if care_level == "emergency_room":
-        title = "Emergency department — immediate in-person evaluation"
-        ai = (
-            "Triage (rule engine): Possible emergency pattern from your description. "
-            + title
-            + ". This is not a diagnosis—if you are in danger, call your local emergency number now."
-        )
-        follow = (
-            "Are these symptoms happening right now? If yes, seek emergency care immediately. "
-            "If not, when did they begin?"
-        )
-    elif care_level == "clinic_visit":
-        title = "Clinic or primary care — schedule evaluation"
-        ai = (
-            "Triage (rule engine): Your symptoms may warrant a clinician visit soon. "
-            + title
-            + ". Bring a list of medications and when symptoms started."
-        )
-        follow = "Can you share onset timing, severity 1–10, and any new symptoms since yesterday?"
-    else:
-        title = "Home care — self-management & monitoring"
-        ai = (
-            "Triage (rule engine): Pattern suggests self-care with monitoring may be reasonable. "
-            + title
-            + ". Seek care if symptoms worsen or new red flags appear."
-        )
-        follow = "What makes symptoms better or worse? Any chronic conditions or daily medications?"
+    lang = ctx.language if ctx and ctx.language in ("hi", "kn", "en") else "en"
 
-    note = (
-        "Rural / low-connectivity mode: this pass uses on-server rules without generative AI. "
-        "When online, enable GEMINI_API_KEY for deeper NLP medical conversation analysis."
-    )
+    LOC = {
+        "en": {
+            "title_er": "Emergency department — immediate in-person evaluation",
+            "title_clinic": "Clinic or primary care — schedule evaluation",
+            "title_home": "Home care — self-management & monitoring",
+            "ai_er": "Triage (rule engine): Possible emergency pattern from your description. {title}. This is not a diagnosis—if you are in danger, call your local emergency number now.",
+            "ai_clinic": "Triage (rule engine): Your symptoms may warrant a clinician visit soon. {title}. Bring a list of medications and when symptoms started.",
+            "ai_home": "Triage (rule engine): Pattern suggests self-care with monitoring may be reasonable. {title}. Seek care if symptoms worsen or new red flags appear.",
+            "follow_er": "Are these symptoms happening right now? If yes, seek emergency care immediately. If not, when did they begin?",
+            "follow_clinic": "Can you share onset timing, severity 1–10, and any new symptoms since yesterday?",
+            "follow_home": "What makes symptoms better or worse? Any chronic conditions or daily medications?",
+            "note": "Rural / low-connectivity mode: on-server rules without generative AI. Enable GEMINI_API_KEY for deeper NLP.",
+            "nlp_empty": "No tokens extracted",
+        },
+        "hi": {
+            "title_er": "आपात कक्ष — तुरंत व्यक्तिगत मूल्यांकन",
+            "title_clinic": "क्लिनिक / प्राथमिक देखभाल — जल्द मुलाकात",
+            "title_home": "घर पर देखभाल — निगरानी और स्व-प्रबंधन",
+            "ai_er": "ट्राइज (नियम इंजन): आपात संभावना। {title}। निदान नहीं—खतरे में तुरंत आपात नंबर।",
+            "ai_clinic": "ट्राइज (नियम इंजन): चिकित्सक मुलाकात जल्द उपयुक्त। {title}। दवाएँ और शुरुआत समय लाएँ।",
+            "ai_home": "ट्राइज (नियम इंजन): घर पर देखभाल संभव। {title}। बिगड़ने पर सहायता लें।",
+            "follow_er": "ये लक्षण अभी हैं? हाँ तो तुरंत आपात। नहीं तो कब शुरू?",
+            "follow_clinic": "शुरुआत, गंभीरता 1–10, नए लक्षण बताएँ।",
+            "follow_home": "क्या राहत या बिगड़ाव देता है? दीर्घ रोग/दवाएँ?",
+            "note": "कम बैंडविड्थ: सर्वर नियम। GEMINI_API_KEY से पूर्ण NLP।",
+            "nlp_empty": "टोकन नहीं मिले",
+        },
+        "kn": {
+            "title_er": "ತುರ್ತು ಕೊಠಡಿ — ತಕ್ಷಣ ಮೌಲ್ಯಮಾಪನ",
+            "title_clinic": "ಕ್ಲಿನಿಕ್ / ಪ್ರಾಥಮಿಕ ಆರೈಕೆ — ಶೀಘ್ರ ಭೇಟಿ",
+            "title_home": "ಮನೆ ಆರೈಕೆ — ಮೇಲ್ವಿಚಾರಣೆ",
+            "ai_er": "ಟ್ರೈಜ್ (ನಿಯಮ ಎಂಜಿನ್): ತುರ್ತು ಸಾಧ್ಯತೆ. {title}. ರೋಗನಿರ್ಣಯ ಅಲ್ಲ—ಅಪಾಯದಲ್ಲಿ ಕರೆ.",
+            "ai_clinic": "ಟ್ರೈಜ್: ವೈದ್ಯರ ಭೇಟಿ ಶಿಫಾರಸು. {title}. ಔಷಧಿ ಪಟ್ಟಿ ತನ್ನಿ.",
+            "ai_home": "ಟ್ರೈಜ್: ಮನೆ ಆರೈಕೆ ಸಾಧ್ಯ. {title}. ಹದಗೆಡಿದರೆ ಸಹಾಯ.",
+            "follow_er": "ಈಗಲೇ ಲಕ್ಷಣಗಳೇ? ಹೌದು ತುರ್ತು. ಇಲ್ಲ ಯಾವಾಗ ಪ್ರಾರಂಭ?",
+            "follow_clinic": "ಪ್ರಾರಂಭ, ತೀವ್ರತೆ 1–10, ಹೊಸ ಲಕ್ಷಣಗಳು.",
+            "follow_home": "ಉತ್ತಮ/ಕೆಟ್ಟದು ಏನು? ದೀರ್ಘಕಾಲಿಕ/ಔಷಧಿ?",
+            "note": "ಕಡಿಮೆ ಬ್ಯಾಂಡ್‌ವಿಡ್ತ್: ನಿಯಮಗಳು. GEMINI_API_KEY ಪೂರ್ಣ NLP.",
+            "nlp_empty": "ಟೋಕನ್‌ಗಳಿಲ್ಲ",
+        },
+    }
+    L = LOC.get(lang, LOC["en"])
+
+    if care_level == "emergency_room":
+        title = L["title_er"]
+        ai = L["ai_er"].format(title=title)
+        follow = L["follow_er"]
+    elif care_level == "clinic_visit":
+        title = L["title_clinic"]
+        ai = L["ai_clinic"].format(title=title)
+        follow = L["follow_clinic"]
+    else:
+        title = L["title_home"]
+        ai = L["ai_home"].format(title=title)
+        follow = L["follow_home"]
+
+    note = L["note"]
+    nlp_sum = ("Tokens: " + ", ".join(nlp_symptoms[:6])) if nlp_symptoms else L["nlp_empty"]
 
     return {
         "session_id": sid,
@@ -196,7 +224,7 @@ def rule_based_triage(message: str, ctx: Optional[PatientContext], sid: str) -> 
         "severity": severity,
         "is_emergency": is_emergency,
         "nlp_symptoms": nlp_symptoms,
-        "nlp_entities_summary": "Tokens: " + ", ".join(nlp_symptoms[:6]) if nlp_symptoms else "No tokens extracted",
+        "nlp_entities_summary": nlp_sum,
         "red_flags": red_flags,
         "care_recommendation_title": title,
         "accessibility_note": note,
@@ -244,6 +272,8 @@ Patient input (may include structured history in brackets):
 {user_blob}
 ---
 {lang_note}
+
+CRITICAL: Write the entire "ai_message" and "follow_up_question" fields in {"Hindi" if lang == "hi" else "Kannada" if lang == "kn" else "clear English"} for the patient. JSON keys stay in English.
 
 Tasks:
 1) NLP: infer chief symptoms and salient entities from the text.

@@ -29,6 +29,8 @@ const CursorTrail = dynamic(() => import("@/components/CursorTrail"), { ssr: fal
 const FeatureSection = dynamic(() => import("@/components/FeatureSection"), { ssr: false });
 const HumanBodyScene = dynamic(() => import("@/components/HumanBodyScene"), { ssr: false });
 const BiometricScanner = dynamic(() => import("@/components/BiometricScanner"), { ssr: false });
+const ExtendedCareTools = dynamic(() => import("@/components/ExtendedCareTools"), { ssr: false });
+const ShareReportPanel = dynamic(() => import("@/components/ShareReportPanel"), { ssr: false });
 
 function BootSequence({ onComplete }: { onComplete: () => void }) {
   const [progress, setProgress] = useState(0);
@@ -367,6 +369,10 @@ export default function Home() {
                        </div>
                     </div>
                  </motion.div>
+              </div>
+              <div className="max-w-7xl mx-auto px-6 space-y-8 mb-12">
+                <ExtendedCareTools />
+                <ShareReportPanel />
               </div>
               <HealthDashboard />
             </section>

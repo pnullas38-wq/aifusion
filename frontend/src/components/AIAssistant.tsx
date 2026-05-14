@@ -20,6 +20,10 @@ import {
 import { sendTriageMessage } from "@/lib/api";
 import { runLocalTriage } from "@/lib/triageEngine";
 import type { PatientTriageContext, TriageResponse } from "@/lib/types";
+import { t, welcomeMessage, careLevelLabel } from "@/lib/triageLocale";
+import { setStoredUILang, getStoredUILang } from "@/lib/uiLang";
+import { saveLastTriage, savePatientContextSnapshot, loadLastTriage } from "@/lib/triagePersistence";
+import Emergency911Panel from "@/components/Emergency911Panel";
 
 interface Message {
   id: string;
@@ -29,13 +33,8 @@ interface Message {
 
 const TRIAGE_EVENT = "v-triage-update";
 
-function careLevelLabel(level: TriageResponse["care_level"]): string {
-  if (level === "emergency_room") return "Emergency room";
-  if (level === "clinic_visit") return "Clinic visit";
-  return "Home care";
-}
-
-function CareBadge({ level }: { level: TriageResponse["care_level"] }) {
+function CareBadge({ level, lang }: { level: TriageResponse["care_level"]; lang: PatientTriageContext["language"] }) {
+  const L = lang || "en";
   const cfg =
     level === "emergency_room"
       ? { Icon: Siren, className: "bg-v-red/20 text-v-red border-v-red/30" }
@@ -46,18 +45,14 @@ function CareBadge({ level }: { level: TriageResponse["care_level"] }) {
   return (
     <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-[10px] font-mono uppercase tracking-widest ${cfg.className}`}>
       <I size={14} />
-      {careLevelLabel(level)}
+      {careLevelLabel(level, L)}
     </div>
   );
 }
 
 export default function AIAssistant() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      role: "ai",
-      text: "I am your AI Healthcare Triage Assistant. Share symptoms in your own words (voice or text). Optional: expand Patient profile so NLP triage can use allergies, medications, and age band. This is preliminary guidance—not a diagnosis.",
-    },
+  const [messages, setMessages] = useState<Message[]>(() => [
+    { id: "1", role: "ai", text: welcomeMessage(getStoredUILang()) },
   ]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -69,7 +64,18 @@ export default function AIAssistant() {
     medications: "",
     language: "en",
   });
-  const [lastTriage, setLastTriage] = useState<TriageResponse | null>(null);
+
+  useEffect(() => {
+    const ui = getStoredUILang();
+    setPatientContext((c) => ({ ...c, language: ui }));
+  }, []);
+
+  useEffect(() => {
+    setStoredUILang(patientContext.language || "en");
+  }, [patientContext.language]);
+  const [lastTriage, setLastTriage] = useState<TriageResponse | null>(() =>
+    typeof window !== "undefined" ? loadLastTriage() : null
+  );
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const sessionIdRef = useRef<string | undefined>(undefined);
@@ -129,6 +135,8 @@ export default function AIAssistant() {
       const responseText = follow ? `${body}\n\n${follow}` : body;
 
       setLastTriage(triage);
+      saveLastTriage(triage);
+      savePatientContextSnapshot(ctxPayload);
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent(TRIAGE_EVENT, { detail: { triage } }));
         if (triage.is_emergency) {
@@ -149,6 +157,8 @@ export default function AIAssistant() {
           const utterance = new SpeechSynthesisUtterance(responseText.slice(0, 320));
           utterance.rate = 1.02;
           utterance.pitch = 0.95;
+          const L = ctxPayload.language || "en";
+          utterance.lang = L === "hi" ? "hi-IN" : L === "kn" ? "kn-IN" : "en-US";
           window.speechSynthesis.cancel();
           window.speechSynthesis.speak(utterance);
         } catch (e) {
@@ -157,12 +167,13 @@ export default function AIAssistant() {
       }
     } catch (err) {
       console.error("Chatbot Core Error:", err);
+      const errD = t(ctxPayload.language || "en");
       setMessages((prev) => [
         ...prev,
         {
           id: `a-err-${Date.now()}`,
           role: "ai",
-          text: "Channel interrupted. Please retry. If symptoms are severe, contact emergency services.",
+          text: errD.channelError,
         },
       ]);
     } finally {
@@ -174,7 +185,7 @@ export default function AIAssistant() {
   const startListening = useCallback(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert("Voice recognition is not supported in this browser. Please use Chrome or Edge.");
+      alert(t(patientContext.language || "en").voiceUnsupported);
       return;
     }
 
@@ -196,6 +207,9 @@ export default function AIAssistant() {
     recognition.start();
   }, [handleSend, patientContext.language]);
 
+  const L = patientContext.language || "en";
+  const d = t(L);
+
   return (
     <div className="glass rounded-[40px] flex flex-col h-[720px] w-full max-w-2xl mx-auto overflow-hidden shadow-2xl relative">
       <div className="p-5 border-b border-white/5 flex items-center justify-between bg-white/[0.02] shrink-0">
@@ -204,8 +218,8 @@ export default function AIAssistant() {
             <Brain className="text-v-cyan" size={22} />
           </div>
           <div>
-            <h3 className="font-bold tracking-tight uppercase italic text-sm">Healthcare Triage Assistant</h3>
-            <span className="text-[8px] font-mono text-v-emerald uppercase tracking-widest">NLP · Risk · Care levels</span>
+            <h3 className="font-bold tracking-tight uppercase italic text-sm">{d.assistantTitle}</h3>
+            <span className="text-[8px] font-mono text-v-emerald uppercase tracking-widest">{d.assistantSubtitle}</span>
           </div>
         </div>
         <div className="flex gap-1.5">
@@ -223,7 +237,7 @@ export default function AIAssistant() {
         >
           <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-v-cyan flex items-center gap-2">
             <Stethoscope size={14} />
-            Patient profile & medical history
+            {d.profileToggle}
           </span>
           {showHistory ? <ChevronUp size={16} className="text-v-muted" /> : <ChevronDown size={16} className="text-v-muted" />}
         </button>
@@ -237,7 +251,7 @@ export default function AIAssistant() {
             >
               <div className="px-5 pb-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[9px] font-mono text-v-muted uppercase block mb-1">Age band</label>
+                  <label className="text-[9px] font-mono text-v-muted uppercase block mb-1">{d.ageBand}</label>
                   <select
                     value={patientContext.age_band || ""}
                     onChange={(e) =>
@@ -248,14 +262,14 @@ export default function AIAssistant() {
                     }
                     className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-xs"
                   >
-                    <option value="">Prefer not to say</option>
-                    <option value="child">Child</option>
-                    <option value="adult">Adult</option>
-                    <option value="senior">Senior</option>
+                    <option value="">{d.agePreferNot}</option>
+                    <option value="child">{d.ageChild}</option>
+                    <option value="adult">{d.ageAdult}</option>
+                    <option value="senior">{d.ageSenior}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-[9px] font-mono text-v-muted uppercase block mb-1">Voice / NLP language</label>
+                  <label className="text-[9px] font-mono text-v-muted uppercase block mb-1">{d.languageLabel}</label>
                   <select
                     value={patientContext.language || "en"}
                     onChange={(e) =>
@@ -266,35 +280,35 @@ export default function AIAssistant() {
                     }
                     className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-xs"
                   >
-                    <option value="en">English</option>
-                    <option value="hi">Hindi (voice + server NLP hint)</option>
-                    <option value="kn">Kannada (voice + server NLP hint)</option>
+                    <option value="en">{d.langEn}</option>
+                    <option value="hi">{d.langHi}</option>
+                    <option value="kn">{d.langKn}</option>
                   </select>
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="text-[9px] font-mono text-v-muted uppercase block mb-1">Chronic conditions</label>
+                  <label className="text-[9px] font-mono text-v-muted uppercase block mb-1">{d.chronic}</label>
                   <input
                     value={patientContext.chronic_conditions || ""}
                     onChange={(e) => setPatientContext((c) => ({ ...c, chronic_conditions: e.target.value }))}
-                    placeholder="e.g. asthma, diabetes, hypertension"
+                    placeholder={d.phChronic}
                     className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-xs"
                   />
                 </div>
                 <div>
-                  <label className="text-[9px] font-mono text-v-muted uppercase block mb-1">Allergies</label>
+                  <label className="text-[9px] font-mono text-v-muted uppercase block mb-1">{d.allergies}</label>
                   <input
                     value={patientContext.allergies || ""}
                     onChange={(e) => setPatientContext((c) => ({ ...c, allergies: e.target.value }))}
-                    placeholder="Drug or food allergies"
+                    placeholder={d.phAllergies}
                     className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-xs"
                   />
                 </div>
                 <div>
-                  <label className="text-[9px] font-mono text-v-muted uppercase block mb-1">Medications</label>
+                  <label className="text-[9px] font-mono text-v-muted uppercase block mb-1">{d.medications}</label>
                   <input
                     value={patientContext.medications || ""}
                     onChange={(e) => setPatientContext((c) => ({ ...c, medications: e.target.value }))}
-                    placeholder="Current medications"
+                    placeholder={d.phMeds}
                     className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-xs"
                   />
                 </div>
@@ -312,18 +326,20 @@ export default function AIAssistant() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             className={`mx-4 mt-3 rounded-2xl border p-4 shrink-0 ${
-              lastTriage.is_emergency ? "border-v-red/40 bg-v-red/10" : "border-white/10 bg-white/[0.03]"
+              lastTriage.is_emergency || lastTriage.care_level === "emergency_room"
+                ? "border-v-red/40 bg-v-red/10"
+                : "border-white/10 bg-white/[0.03]"
             }`}
           >
             <div className="flex flex-wrap items-center gap-2 mb-3">
-              <CareBadge level={lastTriage.care_level} />
+              <CareBadge level={lastTriage.care_level} lang={L} />
               <span className="text-[10px] font-mono text-v-muted uppercase">
-                Risk {lastTriage.risk_score}/100 · {lastTriage.severity}
+                {d.riskLabel} {lastTriage.risk_score}/100 · {lastTriage.severity}
               </span>
-              {lastTriage.is_emergency && (
+              {(lastTriage.is_emergency || lastTriage.care_level === "emergency_room") && (
                 <span className="inline-flex items-center gap-1 text-[10px] font-mono uppercase text-v-red">
                   <AlertTriangle size={12} />
-                  Emergency pattern
+                  {d.emergencyBadge}
                 </span>
               )}
             </div>
@@ -338,7 +354,7 @@ export default function AIAssistant() {
             <p className="text-[11px] text-v-muted font-light leading-relaxed mb-2">{lastTriage.care_recommendation_title}</p>
             {lastTriage.nlp_symptoms.length > 0 && (
               <p className="text-[10px] font-mono text-v-cyan/80 mb-1">
-                NLP symptoms: {lastTriage.nlp_symptoms.slice(0, 8).join(", ")}
+                {d.nlpSymptoms}: {lastTriage.nlp_symptoms.slice(0, 8).join(", ")}
               </p>
             )}
             {lastTriage.red_flags.length > 0 && (
@@ -347,6 +363,11 @@ export default function AIAssistant() {
                   <li key={i}>{r}</li>
                 ))}
               </ul>
+            )}
+            {(lastTriage.is_emergency || lastTriage.care_level === "emergency_room") && (
+              <div className="mt-3 pt-3 border-t border-v-red/25">
+                <Emergency911Panel compact />
+              </div>
             )}
             <p className="text-[9px] text-v-muted/80 mt-2 flex items-start gap-1.5">
               <Globe2 size={12} className="shrink-0 mt-0.5 text-v-cyan/60" />
@@ -374,7 +395,7 @@ export default function AIAssistant() {
               >
                 <p className="text-sm leading-relaxed font-light whitespace-pre-wrap">{msg.text}</p>
                 <span className="text-[8px] font-mono text-v-muted uppercase tracking-widest mt-2 block">
-                  {msg.role === "user" ? "Patient" : "Triage assistant"}
+                  {msg.role === "user" ? d.patientLabel : d.aiLabel}
                 </span>
               </div>
             </motion.div>
@@ -384,7 +405,7 @@ export default function AIAssistant() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
               <div className="bg-white/[0.03] border border-white/5 p-3 rounded-2xl rounded-tl-sm flex items-center gap-3">
                 <Loader2 className="text-v-cyan animate-spin" size={16} />
-                <span className="text-[8px] font-mono text-v-cyan uppercase tracking-widest">Analyzing symptoms…</span>
+                <span className="text-[8px] font-mono text-v-cyan uppercase tracking-widest">{d.analyzing}</span>
               </div>
             </motion.div>
           )}
@@ -408,7 +429,7 @@ export default function AIAssistant() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
-            placeholder="Describe symptoms (multi-turn conversation supported)…"
+            placeholder={d.inputPh}
             className="flex-1 min-w-0 bg-white/[0.03] border border-white/10 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-v-cyan/40 font-light placeholder:text-v-muted/50"
           />
           <button
@@ -421,17 +442,15 @@ export default function AIAssistant() {
           </button>
         </div>
 
-        <p className="text-[9px] text-v-muted/70 mt-2 font-mono text-center">
-          Educational demo — not a substitute for licensed medical care. Prioritizes early intervention & appropriate care levels.
-        </p>
+        <p className="text-[9px] text-v-muted/70 mt-2 font-mono text-center">{d.disclaimer}</p>
 
         <div className="mt-4 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
           {[
-            { label: "Mild cold symptoms", key: "cold" },
-            { label: "Fever for 3 days", key: "fever" },
-            { label: "Chest pain on exertion", key: "chest" },
-            { label: "Shortness of breath", key: "breath" },
-            { label: "Panic / anxiety spike", key: "mh" },
+            { label: d.chipCold, key: "cold" },
+            { label: d.chipFever, key: "fever" },
+            { label: d.chipChest, key: "chest" },
+            { label: d.chipBreath, key: "breath" },
+            { label: d.chipMh, key: "mh" },
           ].map((tag) => (
             <button
               key={tag.key}
