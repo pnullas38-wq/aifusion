@@ -59,6 +59,9 @@ type Dict = {
   videoClose: string;
   videoNoUrl: string;
   videoHelp: string;
+  videoEnvHint: string;
+  videoEmbedBlocked: string;
+  videoOpenNewTab: string;
   reportDownload: string;
   ehrDownload: string;
   ehrCopy: string;
@@ -140,7 +143,12 @@ const en: Dict = {
   videoEmbed: "Embed session",
   videoClose: "Close",
   videoNoUrl: "Set NEXT_PUBLIC_TELEHEALTH_URL in .env.local (Jitsi, Meet, or hospital portal).",
-  videoHelp: "In-browser embed may be blocked by some providers; use Open link if the frame is blank.",
+  videoHelp: "Jitsi / 8x8 embeds in-page. Google Meet, Zoom, and many hospital portals block iframes — use Open telehealth link.",
+  videoEnvHint:
+    "Put the variable in frontend/.env.local (same folder as package.json), then restart npm run dev so Next.js picks it up.",
+  videoEmbedBlocked:
+    "This URL cannot run inside an embedded frame (the provider blocks it). Use Open telehealth link or a Jitsi room for in-app video.",
+  videoOpenNewTab: "Open in new tab",
   reportDownload: "AI health report",
   ehrDownload: "EHR-style export",
   ehrCopy: "Copy FHIR JSON",
@@ -223,7 +231,11 @@ const hi: Dict = {
   videoEmbed: "ब्राउज़र में एम्बेड",
   videoClose: "बंद करें",
   videoNoUrl: ".env.local में NEXT_PUBLIC_TELEHEALTH_URL सेट करें (Jitsi, Meet, अस्पताल पोर्टल)।",
-  videoHelp: "कुछ प्रदाता iframe रोकते हैं — फ्रेम खाली हो तो लिंक खोलें।",
+  videoHelp: "Jitsi / 8x8 पेज में एम्बेड हो सकता है। Google Meet, Zoom और कई अस्पताल पोर्टल iframe रोकते हैं — टेलीहेल्थ लिंक खोलें।",
+  videoEnvHint: "चर frontend/.env.local में रखें (package.json वाला फ़ोल्डर), फिर npm run dev दोबारा चलाएँ।",
+  videoEmbedBlocked:
+    "यह URL एम्बेड फ़्रेम में नहीं चल सकता (प्रदाता ब्लॉक करता है)। टेलीहेल्थ लिंक खोलें या इन-ऐप वीडियो के लिए Jitsi कमरा उपयोग करें।",
+  videoOpenNewTab: "नए टैब में खोलें",
   reportDownload: "AI स्वास्थ्य रिपोर्ट",
   ehrDownload: "EHR-शैली निर्यात",
   ehrCopy: "FHIR JSON कॉपी",
@@ -306,7 +318,11 @@ const kn: Dict = {
   videoEmbed: "ಬ್ರೌಸರ್‌ನಲ್ಲಿ ಎಂಬೆಡ್",
   videoClose: "ಮುಚ್ಚಿ",
   videoNoUrl: ".env.local ನಲ್ಲಿ NEXT_PUBLIC_TELEHEALTH_URL ಹೊಂದಿಸಿ (Jitsi, Meet, ಆಸ್ಪತ್ರೆ ಪೋರ್ಟಲ್).",
-  videoHelp: "ಕೆಲವು ಪೂರೈಕೆದಾರರು iframe ನಿರ್ಬಂಧಿಸಬಹುದು — ಖಾಲಿ ಇದ್ದರೆ ಲಿಂಕ್ ತೆರೆಯಿರಿ.",
+  videoHelp: "Jitsi / 8x8 ಪುಟದೊಳಗೆ ಎಂಬೆಡ್ ಆಗಬಹುದು. Google Meet, Zoom ಮತ್ತು ಹಲವು ಆಸ್ಪತ್ರೆ ಪೋರ್ಟಲ್‌ಗಳು iframe ನಿರ್ಬಂಧಿಸುತ್ತವೆ — ಟೆಲಿಹೆಲ್ತ್ ಲಿಂಕ್ ತೆರೆಯಿರಿ.",
+  videoEnvHint: "ಪರಿವರ್ತನೆಯನ್ನು frontend/.env.local ನಲ್ಲಿ ಇರಿಸಿ (package.json ಇರುವ ಫೋಲ್ಡರ್), ನಂತರ npm run dev ಮತ್ತೆ ಚಲಾಯಿಸಿ.",
+  videoEmbedBlocked:
+    "ಈ URL ಅಂತರ್ಗತ ಫ್ರೇಮ್‌ನಲ್ಲಿ ಚಲಿಸುವುದಿಲ್ಲ (ಪೂರೈಕೆದಾರ ನಿರ್ಬಂಧಿಸುತ್ತಾರೆ). ಟೆಲಿಹೆಲ್ತ್ ಲಿಂಕ್ ಅಥವಾ Jitsi ಕೊಠಡಿ ಬಳಸಿ.",
+  videoOpenNewTab: "ಹೊಸ ಟ್ಯಾಬ್‌ನಲ್ಲಿ ತೆರೆಯಿರಿ",
   reportDownload: "AI ಆರೋಗ್ಯ ವರದಿ",
   ehrDownload: "EHR-ಶೈಲಿ ರಫ್ತು",
   ehrCopy: "FHIR JSON ನಕಲಿಸಿ",

@@ -7,6 +7,19 @@ import { copyEhrJsonToClipboard, downloadEhrJsonBundle } from "@/lib/ehrExport";
 import { t, type UILang } from "@/lib/triageLocale";
 import { getStoredUILang } from "@/lib/uiLang";
 
+/** Google Meet, Zoom, Teams, etc. send headers that block <iframe>; Jitsi / 8x8 usually work. */
+function telehealthEmbedMode(url: string): "iframe" | "blocked" {
+  try {
+    const host = new URL(url.trim()).hostname.replace(/^www\./i, "").toLowerCase();
+    if (host === "meet.google.com") return "blocked";
+    if (host === "zoom.us" || host.endsWith(".zoom.us")) return "blocked";
+    if (host.includes("teams.microsoft.com") || host.includes("teams.live.com")) return "blocked";
+    return "iframe";
+  } catch {
+    return "blocked";
+  }
+}
+
 export default function ExtendedCareTools() {
   const tele = process.env.NEXT_PUBLIC_TELEHEALTH_URL?.trim();
   const [lang, setLang] = useState<UILang>(() => getStoredUILang());
@@ -67,6 +80,7 @@ export default function ExtendedCareTools() {
             </button>
           </div>
           <p className="text-[10px] text-v-muted/80 font-light leading-snug">{d.videoHelp}</p>
+          {!tele && <p className="text-[10px] text-amber-200/70 font-light leading-snug px-1">{d.videoEnvHint}</p>}
         </div>
 
         <button
@@ -118,8 +132,29 @@ export default function ExtendedCareTools() {
                 <X size={20} />
               </button>
             </div>
-            <iframe title={d.videoTitle} src={tele} className="w-full flex-1 min-h-[420px] bg-black" allow="camera; microphone; fullscreen; display-capture" />
-            <p className="text-[10px] text-v-muted px-4 py-2 font-light">{d.videoHelp}</p>
+            {telehealthEmbedMode(tele) === "iframe" ? (
+              <iframe
+                title={d.videoTitle}
+                src={tele}
+                className="w-full flex-1 min-h-[420px] bg-black border-0"
+                allow="camera; microphone; fullscreen; display-capture; autoplay"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center gap-6 p-10 min-h-[320px] text-center">
+                <p className="text-sm text-v-text/90 font-light max-w-md leading-relaxed">{d.videoEmbedBlocked}</p>
+                <a
+                  href={tele}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-v-cyan text-v-bg text-xs font-mono uppercase tracking-wider hover:opacity-95"
+                >
+                  <ExternalLink size={16} />
+                  {d.videoOpenNewTab}
+                </a>
+              </div>
+            )}
+            <p className="text-[10px] text-v-muted px-4 py-2 font-light border-t border-white/5">{d.videoHelp}</p>
           </div>
         </div>
       )}
