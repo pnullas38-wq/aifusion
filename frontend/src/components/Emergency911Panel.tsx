@@ -109,7 +109,7 @@ export default function Emergency911Panel({ compact }: { compact?: boolean }) {
     }
   };
 
-  const smsHref = coords ? `sms:911?body=${encodeURIComponent(build911SmsBody(coords, lang))}` : null;
+  const smsHref = coords ? `sms:108?body=${encodeURIComponent(build911SmsBody(coords, lang))}` : null;
   const mapsHref = coords
     ? `https://maps.google.com/?q=${encodeURIComponent(`${coords.lat},${coords.lng}`)}`
     : null;
@@ -142,7 +142,7 @@ export default function Emergency911Panel({ compact }: { compact?: boolean }) {
 
       <div className={`flex flex-wrap gap-2 ${compact ? "" : "gap-3"}`}>
         <a
-          href="tel:911"
+          href="tel:108"
           className={`inline-flex items-center justify-center gap-2 rounded-2xl bg-v-red text-white font-bold uppercase tracking-wider shadow-lg hover:opacity-95 ${
             compact ? "px-3 py-2 text-[10px]" : "px-6 py-4 text-xs"
           }`}

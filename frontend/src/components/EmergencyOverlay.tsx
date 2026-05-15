@@ -48,12 +48,12 @@ export default function EmergencyOverlay({ onClose }: EmergencyOverlayProps) {
             </h2>
             <p className="text-base md:text-lg text-v-text/85 mb-8 leading-relaxed max-w-md font-light">
               Biometric or triage signals crossed a critical threshold. If this is a real emergency, call{" "}
-              <strong className="text-v-red">911</strong> (where available), share your location with dispatch, and
-              follow operator instructions.
+              <strong className="text-v-red">108</strong> (India ambulance / medical emergency), share your location with
+              dispatch, and follow operator instructions.
             </p>
 
             <div className="space-y-3">
-              {["Seek immediate in-person emergency care if advised.", "Use the 911 panel to update GPS for responders.", "This UI does not replace professional dispatch."].map(
+              {["Seek immediate in-person emergency care if advised.", "Use the 108 panel to update GPS for responders.", "This UI does not replace professional dispatch."].map(
                 (alert, i) => (
                   <motion.div
                     key={i}
