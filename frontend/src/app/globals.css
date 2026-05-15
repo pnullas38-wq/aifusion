@@ -19,6 +19,12 @@
   cursor: none;
 }
 
+/* Login / signup: show normal pointer and I-beam (global * uses cursor:none for main app) */
+.auth-page,
+.auth-page * {
+  cursor: auto;
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -29,6 +35,28 @@ body {
   font-family: 'Inter', system-ui, sans-serif;
   overflow-x: hidden;
   min-height: 100vh;
+}
+
+/* Forms: global cursor:none would hide the I-beam; keep fields usable and readable */
+input,
+textarea,
+select,
+button,
+a {
+  cursor: auto;
+}
+
+input,
+textarea {
+  color: #e2e8f0;
+  caret-color: var(--v-cyan);
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #e2e8f0 !important;
+  caret-color: var(--v-cyan);
 }
 
 /* Scrollbar */

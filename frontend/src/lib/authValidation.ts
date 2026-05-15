@@ -7,10 +7,13 @@ export function validateSignupEmail(email: string): string | null {
   return null;
 }
 
+/** Letter (any alphabet) and number (any script), so non-English passwords still work. */
 export function validateSignupPassword(password: string): string | null {
   if (password.length < 8) return "Password must be at least 8 characters.";
   if (password.length > 128) return "Password is too long.";
-  if (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
+  const hasLetter = /\p{L}/u.test(password);
+  const hasNumber = /\p{N}/u.test(password);
+  if (!hasLetter || !hasNumber) {
     return "Password must include at least one letter and one number.";
   }
   return null;

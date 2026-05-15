@@ -3,6 +3,8 @@ import { validateSignupEmail, validateSignupPassword } from "@/lib/authValidatio
 import { hashPassword } from "@/lib/password";
 import { createUser, EmailInUseError } from "@/lib/usersStore";
 
+export const runtime = "nodejs";
+
 export async function POST(req: Request) {
   let body: { email?: string; password?: string };
   try {
@@ -28,12 +30,17 @@ export async function POST(req: Request) {
     createUser(email, passwordHash);
     return NextResponse.json({ ok: true });
   } catch (e) {
-    if (e instanceof EmailInUseError) {
+    if (
+      e instanceof EmailInUseError ||
+      (e instanceof Error && e.message === "EMAIL_IN_USE")
+    ) {
       return NextResponse.json(
         { error: "An account with this email already exists." },
         { status: 409 }
       );
     }
-    throw e;
+    const message =
+      e instanceof Error ? e.message : "Could not create account. Try again.";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

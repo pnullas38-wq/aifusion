@@ -42,7 +42,7 @@ function LoginForm() {
   }
 
   return (
-    <main className="min-h-screen bg-v-bg text-v-text flex items-center justify-center p-6">
+    <main className="auth-page min-h-screen bg-v-bg text-v-text flex items-center justify-center p-6">
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -79,7 +79,7 @@ function LoginForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full rounded-2xl bg-white/5 border border-white/10 px-4 py-3 text-sm outline-none focus:border-v-cyan/50 focus:ring-1 focus:ring-v-cyan/30 transition-colors"
+              className="w-full rounded-2xl bg-white/5 border border-white/10 px-4 py-3 text-sm text-v-text caret-v-cyan outline-none focus:border-v-cyan/50 focus:ring-1 focus:ring-v-cyan/30 transition-colors"
               placeholder="you@example.com"
             />
           </div>
@@ -93,7 +93,7 @@ function LoginForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full rounded-2xl bg-white/5 border border-white/10 px-4 py-3 text-sm outline-none focus:border-v-cyan/50 focus:ring-1 focus:ring-v-cyan/30 transition-colors"
+              className="w-full rounded-2xl bg-white/5 border border-white/10 px-4 py-3 text-sm text-v-text caret-v-cyan outline-none focus:border-v-cyan/50 focus:ring-1 focus:ring-v-cyan/30 transition-colors"
               placeholder="••••••••"
             />
           </div>
@@ -136,7 +136,7 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-v-bg flex items-center justify-center">
+        <div className="min-h-screen bg-v-bg flex items-center justify-center auth-page">
           <Loader2 className="w-10 h-10 text-v-cyan animate-spin" />
         </div>
       }

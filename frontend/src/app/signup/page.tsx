@@ -28,19 +28,31 @@ export default function SignupPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-      const data = await res.json().catch(() => ({}));
+      const raw = await res.text();
+      let data: { error?: string } = {};
+      try {
+        data = JSON.parse(raw) as { error?: string };
+      } catch {
+        /* non-JSON error body */
+      }
       if (!res.ok) {
-        setError(typeof data.error === "string" ? data.error : "Could not create account.");
+        setError(
+          typeof data.error === "string"
+            ? data.error
+            : raw.slice(0, 200) || "Could not create account."
+        );
         return;
       }
       router.replace("/login?registered=1");
+    } catch {
+      setError("Network error. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <main className="min-h-screen bg-v-bg text-v-text flex items-center justify-center p-6">
+    <main className="auth-page min-h-screen bg-v-bg text-v-text flex items-center justify-center p-6">
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -60,6 +72,11 @@ export default function SignupPage() {
           </div>
         </div>
 
+        <p className="mb-6 text-xs text-v-muted leading-relaxed">
+          Password rules: at least 8 characters, with at least one letter (any
+          language) and one number.
+        </p>
+
         <form onSubmit={onSubmit} className="space-y-5">
           <div>
             <label className="block text-[10px] font-mono uppercase tracking-widest text-v-muted mb-2">
@@ -71,7 +88,7 @@ export default function SignupPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full rounded-2xl bg-white/5 border border-white/10 px-4 py-3 text-sm outline-none focus:border-v-cyan/50 focus:ring-1 focus:ring-v-cyan/30 transition-colors"
+              className="w-full rounded-2xl bg-white/5 border border-white/10 px-4 py-3 text-sm text-v-text caret-v-cyan outline-none focus:border-v-cyan/50 focus:ring-1 focus:ring-v-cyan/30 transition-colors"
               placeholder="you@example.com"
             />
           </div>
@@ -86,7 +103,7 @@ export default function SignupPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={8}
-              className="w-full rounded-2xl bg-white/5 border border-white/10 px-4 py-3 text-sm outline-none focus:border-v-cyan/50 focus:ring-1 focus:ring-v-cyan/30 transition-colors"
+              className="w-full rounded-2xl bg-white/5 border border-white/10 px-4 py-3 text-sm text-v-text caret-v-cyan outline-none focus:border-v-cyan/50 focus:ring-1 focus:ring-v-cyan/30 transition-colors"
               placeholder="8+ characters, letter and number"
             />
           </div>
@@ -100,7 +117,7 @@ export default function SignupPage() {
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               required
-              className="w-full rounded-2xl bg-white/5 border border-white/10 px-4 py-3 text-sm outline-none focus:border-v-cyan/50 focus:ring-1 focus:ring-v-cyan/30 transition-colors"
+              className="w-full rounded-2xl bg-white/5 border border-white/10 px-4 py-3 text-sm text-v-text caret-v-cyan outline-none focus:border-v-cyan/50 focus:ring-1 focus:ring-v-cyan/30 transition-colors"
               placeholder="Repeat password"
             />
           </div>

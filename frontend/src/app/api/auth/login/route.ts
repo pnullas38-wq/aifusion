@@ -4,6 +4,8 @@ import { verifyPassword } from "@/lib/password";
 import { findUserByEmail } from "@/lib/usersStore";
 import { AUTH_COOKIE, signSession } from "@/lib/authToken";
 
+export const runtime = "nodejs";
+
 export async function POST(req: Request) {
   let body: { email?: string; password?: string };
   try {

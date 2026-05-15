@@ -3,7 +3,8 @@ import { promisify } from "util";
 
 const pbkdf2Async = promisify(pbkdf2);
 
-const ITERATIONS = 210_000;
+/** Tunable for UX; verifyPassword reads iterations from the stored string. */
+const ITERATIONS = 120_000;
 const KEYLEN = 32;
 const DIGEST = "sha256";
 
@@ -26,7 +27,7 @@ export async function verifyPassword(
   const parts = stored.split("$");
   if (parts.length !== 4 || parts[0] !== "pbkdf2-sha256") return false;
   const iterations = parseInt(parts[1], 10);
-  if (!Number.isFinite(iterations) || iterations < 100_000) return false;
+  if (!Number.isFinite(iterations) || iterations < 60_000) return false;
   const salt = Buffer.from(parts[2], "hex");
   const expected = Buffer.from(parts[3], "hex");
   if (salt.length !== 16 || expected.length !== KEYLEN) return false;

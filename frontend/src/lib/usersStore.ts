@@ -11,8 +11,18 @@ export type UserRecord = {
 
 type Store = { users: UserRecord[] };
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const USERS_FILE = path.join(DATA_DIR, "users.json");
+function resolveUsersFile(): string {
+  const fromEnv = process.env.AUTH_USERS_FILE?.trim();
+  if (fromEnv) return path.resolve(fromEnv);
+  const dirFromEnv = process.env.AUTH_DATA_DIR?.trim();
+  const baseDir = dirFromEnv
+    ? path.resolve(dirFromEnv)
+    : path.join(process.cwd(), "data");
+  return path.join(baseDir, "users.json");
+}
+
+const USERS_FILE = resolveUsersFile();
+const DATA_DIR = path.dirname(USERS_FILE);
 
 function readStore(): Store {
   try {
@@ -26,8 +36,15 @@ function readStore(): Store {
 }
 
 function writeStore(store: Store): void {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.writeFileSync(USERS_FILE, JSON.stringify(store), "utf-8");
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    fs.writeFileSync(USERS_FILE, JSON.stringify(store), "utf-8");
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    throw new Error(
+      `Could not write user data to ${USERS_FILE}: ${msg}. Set AUTH_USERS_FILE or AUTH_DATA_DIR to a writable folder.`
+    );
+  }
 }
 
 export function findUserByEmail(email: string): UserRecord | undefined {
@@ -56,5 +73,11 @@ export function createUser(email: string, passwordHash: string): UserRecord {
   };
   store.users.push(user);
   writeStore(store);
+  const roundTrip = readStore().users.find((u) => u.email === e);
+  if (!roundTrip) {
+    throw new Error(
+      "Account was not saved. If you use serverless hosting (e.g. Vercel), file storage is not persistent—use a database or a writable AUTH_USERS_FILE on a VPS."
+    );
+  }
   return user;
 }
