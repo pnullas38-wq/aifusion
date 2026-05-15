@@ -90,6 +90,8 @@ type Dict = {
   diseaseYoutubeButton: string;
   diseaseYoutubeCuratedNote: string;
   diseaseYoutubeInputRequired: string;
+  diseaseYoutubeEmergencyRedirect: string;
+  diseaseYoutubeAcuteBanner: string;
 };
 
 const en: Dict = {
@@ -136,8 +138,9 @@ const en: Dict = {
   shareSubtitle:
     "Opens your device apps — no server-side SMS/WhatsApp is sent from VITALIS. Message intro matches your UI language (English / Hindi / Kannada).",
   sharePhoneLabel: "India mobile number",
-  sharePhoneHint: "10 digits e.g. 6361258145, or 91XXXXXXXXXX",
-  sharePhonePlaceholder: "6361258145",
+  sharePhoneHint:
+    "Format: 91XXXXXXXXXX (91 plus ten digits). Alternatively, 10 national digits starting with 6–9. No sample subscriber numbers are displayed.",
+  sharePhonePlaceholder: "91XXXXXXXXXX",
   shareInvalid: "Enter a valid Indian mobile (10 digits starting 6–9, or 12 digits with 91).",
   shareWhatsApp: "Send via WhatsApp",
   shareSms: "Open SMS",
@@ -182,11 +185,15 @@ const en: Dict = {
     "911 applies where supported (e.g. US/Canada). SMS-to-911 only works on supported carriers. VITALIS does not contact dispatch automatically — you place the call or text.",
   diseaseYoutubeTitle: "Condition → YouTube consultation",
   diseaseYoutubeHint:
-    "Enter a disease or topic: we open YouTube search in a new tab for patient-education style videos. If NEXT_PUBLIC_DISEASE_VIDEO_MAP lists this condition, a curated preview also plays below.",
+    "Enter a disease or topic: we open YouTube search in a new tab for patient-education style videos. If NEXT_PUBLIC_DISEASE_VIDEO_MAP lists this condition, a curated preview also plays below. Acute or life-threatening wording (e.g. chest pain, stroke, cannot breathe) switches emergency mode and does not open YouTube.",
   diseaseYoutubePlaceholder: "e.g. diabetes, asthma, migraine",
   diseaseYoutubeButton: "Open YouTube videos",
   diseaseYoutubeCuratedNote: "Curated preview (from your env map)",
   diseaseYoutubeInputRequired: "Enter a condition name first.",
+  diseaseYoutubeEmergencyRedirect:
+    "Serious or possible emergency wording detected — emergency mode is on. Do not use videos for acute care; call your local emergency number if this is a real emergency. YouTube search was not opened.",
+  diseaseYoutubeAcuteBanner:
+    "Acute wording detected — emergency mode will activate; YouTube will not open. Use triage or call emergency services if needed.",
 };
 
 const hi: Dict = {
@@ -233,8 +240,8 @@ const hi: Dict = {
   shareSubtitle:
     "आपके फ़ोन का ऐप खुलता है — VITALIS सर्वर से SMS/WhatsApp नहीं जाता। संदेश की शुरुआत आपकी भाषा (अंग्रेज़ी / हिंदी / कन्नड़) में है।",
   sharePhoneLabel: "भारतीय मोबाइल नंबर",
-  sharePhoneHint: "१० अंक, उदा. 6361258145 या 91XXXXXXXXXX",
-  sharePhonePlaceholder: "6361258145",
+  sharePhoneHint: "देश कोड सहित: 91XXXXXXXXXX (91 + १० अंक), या ६–९ से शुरू १० अंक। उदाहरण के लिए असली नंबर नहीं दिखाया गया।",
+  sharePhonePlaceholder: "91XXXXXXXXXX",
   shareInvalid: "मान्य भारतीय मोबाइल दर्ज करें (६–९ से शुरू १० अंक, या 91 के साथ १२ अंक)।",
   shareWhatsApp: "WhatsApp पर भेजें",
   shareSms: "SMS खोलें",
@@ -278,11 +285,15 @@ const hi: Dict = {
     "911 जहाँ समर्थित हो (जैसे US/Canada)। SMS-to-911 केवल समर्थित नेटवर्क पर। VITALIS स्वयं डिस्पैच से संपर्क नहीं करता।",
   diseaseYoutubeTitle: "स्थिति → YouTube परामर्श",
   diseaseYoutubeHint:
-    "रोग या विषय लिखें: नए टैब में रोगी-शिक्षा शैली के वीडियो के लिए YouTube खोलें। यदि मानचित्र में यह स्थिति है तो नीचे पूर्वावलोकन भी चलेगा।",
+    "रोग या विषय लिखें: नए टैब में रोगी-शिक्षा शैली के वीडियो के लिए YouTube खोलें। यदि मानचित्र में यह स्थिति है तो नीचे पूर्वावलोकन भी चलेगा। गंभीर/आपात शब्द (जैसे छाती दर्द, स्ट्रोक, साँस नहीं) आपात मोड चालू करते हैं और YouTube नहीं खुलेगा।",
   diseaseYoutubePlaceholder: "उदा. मधुमेह, दमा, माइग्रेन",
   diseaseYoutubeButton: "YouTube वीडियो खोलें",
   diseaseYoutubeCuratedNote: "चयनित पूर्वावलोकन (आपके env मानचित्र से)",
   diseaseYoutubeInputRequired: "पहले स्थिति का नाम लिखें।",
+  diseaseYoutubeEmergencyRedirect:
+    "गंभीर या आपात संभावित शब्द मिले — आपात मोड चालू है। तीव्र देखभाल के लिए वीडियो पर निर्भर न रहें; वास्तविक आपात में तुरंत स्थानीय आपात नंबर डायल करें। YouTube नहीं खोला गया।",
+  diseaseYoutubeAcuteBanner:
+    "गंभीर शब्द मिले — आपात मोड चालू होगा; YouTube नहीं खुलेगा। आवश्यकता हो तो ट्राइज या आपात कॉल करें।",
 };
 
 const kn: Dict = {
@@ -329,8 +340,8 @@ const kn: Dict = {
   shareSubtitle:
     "ನಿಮ್ಮ ಫೋನ್ ಅಪ್ಲಿಕೇಶನ್ ತೆರೆಯುತ್ತದೆ — VITALIS ಸರ್ವರ್‌ನಿಂದ SMS/WhatsApp ಹೋಗುವುದಿಲ್ಲ. ಸಂದೇಶದ ಆರಂಭ ನಿಮ್ಮ ಭಾಷೆಗೆ (ಇಂಗ್ಲಿಷ್ / ಹಿಂದಿ / ಕನ್ನಡ) ಹೊಂದಿಕೆಯಾಗುತ್ತದೆ.",
   sharePhoneLabel: "ಭಾರತೀಯ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ",
-  sharePhoneHint: "೧೦ ಅಂಕೆಗಳು, ಉದಾ. 6361258145 ಅಥವಾ 91XXXXXXXXXX",
-  sharePhonePlaceholder: "6361258145",
+  sharePhoneHint: "ದೇಶ ಕೋಡ್: 91XXXXXXXXXX (91 + ೧೦ ಅಂಕೆಗಳು), ಅಥವಾ 6–9 ರಿಂದ ಪ್ರಾರಂಭವಾಗುವ ೧೦ ಅಂಕೆಗಳು. ನಮೂನೆ ಸಂಖ್ಯೆ ತೋರಿಸಲಾಗಿಲ್ಲ.",
+  sharePhonePlaceholder: "91XXXXXXXXXX",
   shareInvalid: "ಮಾನ್ಯ ಭಾರತೀಯ ಮೊಬೈಲ್ ನಮೂದಿಸಿ (6–9 ರಿಂದ ಪ್ರಾರಂಭವಾಗುವ ೧೦ ಅಂಕೆಗಳು, ಅಥವಾ 91 ಒಂದಿಗೆ ೧೨ ಅಂಕೆಗಳು).",
   shareWhatsApp: "WhatsApp ಮೂಲಕ ಕಳುಹಿಸಿ",
   shareSms: "SMS ತೆರೆಯಿರಿ",
@@ -374,11 +385,15 @@ const kn: Dict = {
     "911 ಅಮೆರಿಕಾ/ಕೆನಡಾದಲ್ಲಿ. SMS-to-911 ಬೆಂಬಲಿತ ವಾಹಕಗಳಲ್ಲಿ ಮಾತ್ರ. VITALIS ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಡಿಸ್ಪ್ಯಾಚ್ ಅನ್ನು ಸಂಪರ್ಕಿಸುವುದಿಲ್ಲ.",
   diseaseYoutubeTitle: "ಸ್ಥಿತಿ → YouTube ಸಮಾಲೋಚನೆ",
   diseaseYoutubeHint:
-    "ರೋಗ ಅಥವಾ ವಿಷಯ ನಮೂದಿಸಿ: ರೋಗಿ ಶಿಕ್ಷಣಾ ವೀಡಿಯೊಗಳಿಗಾಗಿ ಹೊಸ ಟ್ಯಾಬ್‌ನಲ್ಲಿ YouTube ತೆರೆಯುತ್ತದೆ. ನಿಮ್ಮ env ನಕ್ಷೆಯಲ್ಲಿ ಇದ್ದರೆ ಕೆಳಗೆ ಪೂರ್ವವೀಕ್ಷಣೆ.",
+    "ರೋಗ ಅಥವಾ ವಿಷಯ ನಮೂದಿಸಿ: ರೋಗಿ ಶಿಕ್ಷಣಾ ವೀಡಿಯೊಗಳಿಗಾಗಿ ಹೊಸ ಟ್ಯಾಬ್‌ನಲ್ಲಿ YouTube ತೆರೆಯುತ್ತದೆ. ನಿಮ್ಮ env ನಕ್ಷೆಯಲ್ಲಿ ಇದ್ದರೆ ಕೆಳಗೆ ಪೂರ್ವವೀಕ್ಷಣೆ. ತೀವ್ರ/ಜೀವಭಯದ ಶಬ್ದಗಳು (ಎದೆ ನೋವು, ಸ್ಟ್ರೋಕ್, ಉಸಿರಾಟ) ತುರ್ತು ಮೋಡ್ ಮತ್ತು YouTube ತೆರೆಯುವುದಿಲ್ಲ.",
   diseaseYoutubePlaceholder: "ಉದಾ. ಮಧುಮೇಹ, ಆಸ್ತ್ಮಾ, ಮೈಗ್ರೇನ್",
   diseaseYoutubeButton: "YouTube ವೀಡಿಯೊಗಳನ್ನು ತೆರೆಯಿರಿ",
   diseaseYoutubeCuratedNote: "ಕ್ಯುರೇಟೆಡ್ ಪೂರ್ವವೀಕ್ಷಣೆ (env ನಕ್ಷೆಯಿಂದ)",
   diseaseYoutubeInputRequired: "ಮೊದಲು ಸ್ಥಿತಿಯ ಹೆಸರು ನಮೂದಿಸಿ.",
+  diseaseYoutubeEmergencyRedirect:
+    "ತೀವ್ರ ಅಥವಾ ತುರ್ತು ಸಂಭವನೀಯ ಪದಗಳು ಪತ್ತೆಯಾಗಿವೆ — ತುರ್ತು ಮೋಡ್ ಆನ್. ತೀವ್ರ ಆರೈಕೆಗೆ ವೀಡಿಯೊಗಳನ್ನು ಅವಲಂಬಿಸಬೇಡಿ; ನಿಜವಾದ ತುರ್ತಾದರೆ ಸ್ಥಳೀಯ ತುರ್ತು ಸಂಖ್ಯೆಗೆ ಕರೆ ಮಾಡಿ. YouTube ತೆರೆಯಲಾಗಿಲ್ಲ.",
+  diseaseYoutubeAcuteBanner:
+    "ತೀವ್ರ ಪದ ಪತ್ತೆ — ತುರ್ತು ಮೋಡ್ ಸಕ್ರಿಯಗೊಳ್ಳುತ್ತದೆ; YouTube ತೆರೆಯುವುದಿಲ್ಲ. ಅಗತ್ಯವಿದ್ದರೆ ಟ್ರೈಜ್ ಅಥವಾ ತುರ್ತು ಕರೆ.",
 };
 
 const map: Record<UILang, Dict> = { en, hi, kn };

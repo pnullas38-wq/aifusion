@@ -14,7 +14,7 @@ import {
 
 export default function ShareReportPanel() {
   const [lang, setLang] = useState<UILang>(() => getStoredUILang());
-  const [phone, setPhone] = useState("6361258145");
+  const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
