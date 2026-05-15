@@ -10,6 +10,16 @@ export function normalizeIndiaMobileDigits(input: string): string | null {
   return null;
 }
 
+/** Human-readable +91… for status messages (digits-only MSISDN with country code 91). */
+export function formatIndiaDisplayPhone(msisdnDigits: string): string {
+  const d = msisdnDigits.replace(/\D/g, "");
+  const national = d.startsWith("91") && d.length >= 12 ? d.slice(2, 12) : d.length === 10 ? d : d;
+  if (national.length === 10) {
+    return `+91 ${national.slice(0, 5)} ${national.slice(5)}`;
+  }
+  return d.startsWith("91") ? `+${d}` : `+91${d}`;
+}
+
 const TRUNC: Record<UILang, string> = {
   en: "\n\n[…truncated for WhatsApp/SMS length]",
   hi: "\n\n[…WhatsApp/SMS लंबाई सीमा के कारण छोटा किया गया]",
