@@ -32,7 +32,46 @@ interface Message {
 }
 
 const TRIAGE_EVENT = "v-triage-update";
-const CHAT_RESET_DELAY_MS = 2200;
+const CHAT_RESET_DELAY_MS = 2800;
+
+/** When true, clear the chat and start a new session (keep last triage summary for share/export). */
+function isTriageRoundComplete(triage: TriageResponse, turn: number, userText: string): boolean {
+  const follow = triage.follow_up_question?.trim() ?? "";
+  if (!follow) return true;
+  if (turn >= 2) return true;
+
+  const hasAssessment =
+    Boolean(triage.care_level) &&
+    typeof triage.risk_score === "number" &&
+    (triage.ai_message?.trim().length ?? 0) > 15;
+
+  if (!hasAssessment) return false;
+
+  if (triage.is_emergency || triage.severity === "critical" || triage.severity === "high") {
+    return true;
+  }
+
+  if (/\[mental_health_screen\]/i.test(userText)) return true;
+
+  const closingFollow =
+    follow.length > 0 &&
+    !/\?/.test(follow) &&
+    /\b(seek|call|emergency|108|clinic|monitor|worsen|immediately|urgent)\b/i.test(follow);
+
+  return closingFollow;
+}
+
+function resetChatForNewSession(lang: PatientTriageContext["language"]) {
+  const uiLang = lang || getStoredUILang();
+  const note = t(uiLang).chatNewSession;
+  return [
+    {
+      id: `w-${Date.now()}`,
+      role: "ai" as const,
+      text: `${welcomeMessage(uiLang)}\n\n${note}`,
+    },
+  ];
+}
 
 function CareBadge({ level, lang }: { level: TriageResponse["care_level"]; lang: PatientTriageContext["language"] }) {
   const L = lang || "en";
@@ -133,7 +172,6 @@ export default function AIAssistant() {
       await new Promise((resolve) => setTimeout(resolve, 350 + Math.random() * 250));
 
       let triage: TriageResponse;
-      let usedLocalTriage = false;
 
       try {
         triage = await sendTriageMessage({
@@ -143,7 +181,6 @@ export default function AIAssistant() {
         });
         sessionIdRef.current = triage.session_id || sessionIdRef.current;
       } catch {
-        usedLocalTriage = true;
         const sid = sessionIdRef.current || crypto.randomUUID();
         sessionIdRef.current = sid;
         triage = runLocalTriage(textToSend, ctxPayload, sid);
@@ -154,8 +191,7 @@ export default function AIAssistant() {
       const responseText = follow ? `${body}\n\n${follow}` : body;
 
       triageTurnRef.current += 1;
-      const diagnosisComplete =
-        !follow || (usedLocalTriage && triageTurnRef.current >= 2);
+      const diagnosisComplete = isTriageRoundComplete(triage, triageTurnRef.current, textToSend);
 
       setLastTriage(triage);
       saveLastTriage(triage);
@@ -195,24 +231,18 @@ export default function AIAssistant() {
           pendingChatResetRef.current = null;
           triageTurnRef.current = 0;
           sessionIdRef.current = undefined;
-          setLastTriage(null);
-          const lang = ctxPayload.language || getStoredUILang();
-          const note = t(lang).chatNewSession;
-          setMessages([
-            {
-              id: `w-${Date.now()}`,
-              role: "ai",
-              text: `${welcomeMessage(lang)}\n\n${note}`,
-            },
-          ]);
+          setMessages(resetChatForNewSession(ctxPayload.language));
+          setInput("");
           try {
             window.speechSynthesis.cancel();
           } catch {
             /* ignore */
           }
-          window.dispatchEvent(
-            new CustomEvent("v-emergency-trigger", { detail: { active: false } })
-          );
+          if (!triage.is_emergency && triage.severity !== "critical") {
+            window.dispatchEvent(
+              new CustomEvent("v-emergency-trigger", { detail: { active: false } })
+            );
+          }
         }, CHAT_RESET_DELAY_MS);
       }
     } catch (err) {

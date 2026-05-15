@@ -306,7 +306,7 @@ Tasks:
 Respond with ONLY valid JSON (no markdown fences):
 {{
   "ai_message": "Empathetic preliminary guidance (not definitive diagnosis). 3-5 sentences.",
-  "follow_up_question": "Two concrete follow-up questions in one string.",
+  "follow_up_question": "If more history is needed, two concrete follow-up questions in one string; otherwise empty string when care level is final.",
   "care_level": "home_care|clinic_visit|emergency_room",
   "risk_score": 0,
   "severity": "low|moderate|high|critical",
