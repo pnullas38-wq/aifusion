@@ -22,14 +22,6 @@ Monorepo-style layout: **FastAPI** backend (`backend/`) and **Next.js** frontend
    npm run dev
    ```
 
-## WhatsApp consent (Twilio)
-
-Server-side WhatsApp sharing requires explicit **YES** consent before the report is sent. Setup, environment variables, API reference, ngrok, and test steps are in **[docs/WHATSAPP_CONSENT.md](docs/WHATSAPP_CONSENT.md)**.
-
-- `POST /api/whatsapp/send-consent` — sends the consent template.
-- `POST /api/whatsapp/webhook` — Twilio inbound replies (signature-verified).
-- `GET /api/whatsapp/consent-status` — frontend polling.
-
 ## Disclaimer
 
 Educational demo — not a substitute for licensed medical care. See in-app disclaimer.

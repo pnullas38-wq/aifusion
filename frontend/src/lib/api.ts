@@ -2,60 +2,6 @@ import type { PatientTriageContext, TriageResponse } from "./types";
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-export type WhatsAppConsentStatus =
-  | "PENDING"
-  | "CONSENTED"
-  | "REPORT_SENT"
-  | "FAILED"
-  | "DECLINED"
-  | "EXPIRED";
-
-export async function sendWhatsAppConsent(phone: string, reportText: string): Promise<{ requestId: string }> {
-  const res = await fetch(`${API_BASE}/api/whatsapp/send-consent`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ phone, reportText }),
-  });
-  const data: unknown = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const detail =
-      typeof data === "object" && data && "detail" in data
-        ? String((data as { detail?: unknown }).detail ?? res.statusText)
-        : res.statusText;
-    throw new Error(detail || `HTTP ${res.status}`);
-  }
-  if (!data || typeof data !== "object" || !("requestId" in data)) {
-    throw new Error("Invalid consent response");
-  }
-  const requestId = String((data as { requestId: unknown }).requestId);
-  if (!requestId) throw new Error("Missing requestId");
-  return { requestId };
-}
-
-export async function fetchWhatsAppConsentStatus(requestId: string): Promise<{
-  status: WhatsAppConsentStatus;
-  updatedAt: string;
-  error: string | null;
-}> {
-  const q = new URLSearchParams({ request_id: requestId });
-  const res = await fetch(`${API_BASE}/api/whatsapp/consent-status?${q.toString()}`, { method: "GET" });
-  const data: unknown = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const detail =
-      typeof data === "object" && data && "detail" in data
-        ? String((data as { detail?: unknown }).detail ?? res.statusText)
-        : res.statusText;
-    throw new Error(detail || `HTTP ${res.status}`);
-  }
-  if (!data || typeof data !== "object") throw new Error("Invalid status response");
-  const o = data as { status?: unknown; updatedAt?: unknown; error?: unknown };
-  return {
-    status: String(o.status || "FAILED") as WhatsAppConsentStatus,
-    updatedAt: String(o.updatedAt || ""),
-    error: o.error == null ? null : String(o.error),
-  };
-}
-
 function normalizeFollowUp(raw: unknown): string {
   if (raw == null) return "";
   if (typeof raw === "string") return raw.trim();

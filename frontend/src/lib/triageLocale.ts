@@ -54,14 +54,6 @@ type Dict = {
   shareNoReport: string;
   shareBuildWait: string;
   shareNote: string;
-  shareWaSending: string;
-  shareWaInProgress: string;
-  shareWaWaiting: string;
-  shareWaSendingReport: string;
-  shareWaSuccess: string;
-  shareWaFailed: string;
-  shareWaReset: string;
-  shareWaConflict: string;
   videoTitle: string;
   videoOpenLink: string;
   videoEmbed: string;
@@ -142,15 +134,15 @@ const en: Dict = {
   careHome: "Home care",
   careClinic: "Clinic visit",
   careEr: "Emergency room",
-  shareTitle: "Send report on WhatsApp",
+  shareTitle: "Share report (WhatsApp / SMS)",
   shareSubtitle:
-    "Enter the recipient's WhatsApp number. We send them a short verification message; when they reply YES, the full triage report is delivered to that chat. SMS and copy open only on your device.",
-  sharePhoneLabel: "Recipient WhatsApp number",
+    "Enter a mobile number and open WhatsApp with the triage report pre-filled, or use SMS / copy on your device. No server send.",
+  sharePhoneLabel: "India mobile number",
   sharePhoneHint:
-    "India: 91XXXXXXXXXX or 10 digits starting 6–9. The report goes to this number after they reply YES.",
+    "Format: 91XXXXXXXXXX (91 plus ten digits), or 10 national digits starting with 6–9.",
   sharePhonePlaceholder: "91XXXXXXXXXX",
   shareInvalid: "Enter a valid Indian mobile (10 digits starting 6–9, or 12 digits with 91).",
-  shareWhatsApp: "Send verification",
+  shareWhatsApp: "Open WhatsApp",
   shareSms: "Open SMS",
   shareCopyText: "Copy share text",
   shareCopied: "Copied to clipboard",
@@ -158,15 +150,6 @@ const en: Dict = {
   shareNoReport: "Run triage first, then share. No saved session in this browser.",
   shareBuildWait: "Preparing report…",
   shareNote: "The shared summary uses your selected interface language for the disclaimer line.",
-  shareWaSending: "Sending verification to WhatsApp…",
-  shareWaInProgress:
-    "Verification sent to {phone}. Ask them to open WhatsApp and reply YES — the full report is sent automatically after that.",
-  shareWaWaiting: "Waiting for YES on WhatsApp…",
-  shareWaSendingReport: "YES received — sending the report now…",
-  shareWaSuccess: "Report delivered on WhatsApp.",
-  shareWaFailed: "Could not deliver on WhatsApp.",
-  shareWaReset: "Use another number",
-  shareWaConflict: "A verification is already pending for this number. Wait a few minutes or use SMS / copy.",
   videoTitle: "Video consultation",
   videoOpenLink: "Open telehealth link",
   videoEmbed: "Embed session",
@@ -253,14 +236,14 @@ const hi: Dict = {
   careHome: "घर पर देखभाल",
   careClinic: "क्लिनिक जाएँ",
   careEr: "आपात कक्ष",
-  shareTitle: "WhatsApp पर रिपोर्ट भेजें",
+  shareTitle: "रिपोर्ट साझा करें (WhatsApp / SMS)",
   shareSubtitle:
-    "प्राप्तकर्ता का WhatsApp नंबर दर्ज करें। हम सत्यापन संदेश भेजते हैं; YES जवाब के बाद पूरी ट्राइज रिपोर्ट उसी चैट पर जाती है। SMS और कॉपी केवल आपके फ़ोन पर खुलते हैं।",
-  sharePhoneLabel: "प्राप्तकर्ता का WhatsApp नंबर",
-  sharePhoneHint: "भारत: 91XXXXXXXXXX या ६–९ से शुरू १० अंक। YES के बाद रिपोर्ट इसी नंबर पर जाएगी।",
+    "मोबाइल नंबर दर्ज करें और WhatsApp पर ट्राइज रिपोर्ट के साथ खोलें, या SMS / कॉपी उपयोग करें। सर्वर से नहीं भेजा जाता।",
+  sharePhoneLabel: "भारतीय मोबाइल नंबर",
+  sharePhoneHint: "91XXXXXXXXXX (91 + १० अंक), या ६–९ से शुरू १० अंक।",
   sharePhonePlaceholder: "91XXXXXXXXXX",
   shareInvalid: "मान्य भारतीय मोबाइल दर्ज करें (६–९ से शुरू १० अंक, या 91 के साथ १२ अंक)।",
-  shareWhatsApp: "सत्यापन भेजें",
+  shareWhatsApp: "WhatsApp खोलें",
   shareSms: "SMS खोलें",
   shareCopyText: "पाठ कॉपी करें",
   shareCopied: "क्लिपबोर्ड पर कॉपी हो गया",
@@ -268,15 +251,6 @@ const hi: Dict = {
   shareNoReport: "पहले ट्राइज चलाएँ, फिर साझा करें। इस ब्राउज़र में सत्र नहीं मिला।",
   shareBuildWait: "रिपोर्ट तैयार हो रही है…",
   shareNote: "साझा सारांश में अस्वीकरण आपकी चुनी भाषा में जुड़ता है।",
-  shareWaSending: "WhatsApp पर सत्यापन भेजा जा रहा है…",
-  shareWaInProgress:
-    "{phone} पर सत्यापन भेजा गया। WhatsApp खोलकर YES जवाब दें — उसके बाद पूरी रिपोर्ट अपने आप भेजी जाएगी।",
-  shareWaWaiting: "WhatsApp पर YES का इंतज़ार…",
-  shareWaSendingReport: "YES मिला — रिपोर्ट भेजी जा रही है…",
-  shareWaSuccess: "रिपोर्ट WhatsApp पर पहुँचा दी गई।",
-  shareWaFailed: "WhatsApp पर भेजना पूरा नहीं हुआ।",
-  shareWaReset: "दूसरा नंबर",
-  shareWaConflict: "इस नंबर के लिए सत्यापन पहले से लंबित है। कुछ मिनट प्रतीक्षा करें या SMS / कॉपी करें।",
   videoTitle: "वीडियो परामर्श",
   videoOpenLink: "टेलीहेल्थ लिंक खोलें",
   videoEmbed: "ब्राउज़र में एम्बेड",
@@ -362,14 +336,14 @@ const kn: Dict = {
   careHome: "ಮನೆ ಆರೈಕೆ",
   careClinic: "ಕ್ಲಿನಿಕ್ ಭೇಟಿ",
   careEr: "ತುರ್ತು ಕೊಠಡಿ",
-  shareTitle: "WhatsApp ನಲ್ಲಿ ವರದಿ ಕಳುಹಿಸಿ",
+  shareTitle: "ವರದಿ ಹಂಚಿಕೊಳ್ಳಿ (WhatsApp / SMS)",
   shareSubtitle:
-    "ಸ್ವೀಕರಿಸುವವರ WhatsApp ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ. ನಾವು ಪರಿಶೀಲನಾ ಸಂದೇಶ ಕಳುಹಿಸುತ್ತೇವೆ; YES ಉತ್ತರಿಸಿದ ನಂತರ ಪೂರ್ಣ ಟ್ರೈಜ್ ವರದಿ ಆ ಚಾಟ್‌ಗೆ ಹೋಗುತ್ತದೆ. SMS ಮತ್ತು ನಕಲು ನಿಮ್ಮ ಫೋನ್‌ನಲ್ಲಿ ಮಾತ್ರ ತೆರೆಯುತ್ತದೆ.",
-  sharePhoneLabel: "ಸ್ವೀಕರಿಸುವವರ WhatsApp ಸಂಖ್ಯೆ",
-  sharePhoneHint: "ಭಾರತ: 91XXXXXXXXXX ಅಥವಾ 6–9 ರಿಂದ ಪ್ರಾರಂಭವಾಗುವ ೧೦ ಅಂಕೆಗಳು. YES ನಂತರ ವರದಿ ಈ ಸಂಖ್ಯೆಗೆ ಹೋಗುತ್ತದೆ.",
+    "ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ನಮೂದಿಸಿ ಮತ್ತು ಟ್ರೈಜ್ ವರದಿಯೊಂದಿಗೆ WhatsApp ತೆರೆಯಿರಿ, ಅಥವಾ SMS / ನಕಲು ಬಳಸಿ. ಸರ್ವರ್ ಕಳುಹಿಸುವುದಿಲ್ಲ.",
+  sharePhoneLabel: "ಭಾರತೀಯ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ",
+  sharePhoneHint: "91XXXXXXXXXX (91 + ೧೦ ಅಂಕೆಗಳು), ಅಥವಾ 6–9 ರಿಂದ ಪ್ರಾರಂಭವಾಗುವ ೧೦ ಅಂಕೆಗಳು.",
   sharePhonePlaceholder: "91XXXXXXXXXX",
   shareInvalid: "ಮಾನ್ಯ ಭಾರತೀಯ ಮೊಬೈಲ್ ನಮೂದಿಸಿ (6–9 ರಿಂದ ಪ್ರಾರಂಭವಾಗುವ ೧೦ ಅಂಕೆಗಳು, ಅಥವಾ 91 ಒಂದಿಗೆ ೧೨ ಅಂಕೆಗಳು).",
-  shareWhatsApp: "ಪರಿಶೀಲನೆ ಕಳುಹಿಸಿ",
+  shareWhatsApp: "WhatsApp ತೆರೆಯಿರಿ",
   shareSms: "SMS ತೆರೆಯಿರಿ",
   shareCopyText: "ಪಠ್ಯ ನಕಲಿಸಿ",
   shareCopied: "ಕ್ಲಿಪ್‌ಬೋರ್ಡ್‌ಗೆ ನಕಲಿಸಲಾಗಿದೆ",
@@ -377,15 +351,6 @@ const kn: Dict = {
   shareNoReport: "ಮೊದಲು ಟ್ರೈಜ್ ಚಲಾಯಿಸಿ, ನಂತರ ಹಂಚಿಕೊಳ್ಳಿ. ಈ ಬ್ರೌಸರ್‌ನಲ್ಲಿ ಸೆಷನ್ ಇಲ್ಲ.",
   shareBuildWait: "ವರದಿ ತಯಾರಾಗುತ್ತಿದೆ…",
   shareNote: "ಹಂಚಿದ ಸಾರಾಂಶದಲ್ಲಿ ನಿರಾಕರಣೆ ನಿಮ್ಮ ಆಯ್ಕೆಯ ಭಾಷೆಯಲ್ಲಿ ಸೇರುತ್ತದೆ.",
-  shareWaSending: "WhatsApp ಗೆ ಪರಿಶೀಲನೆ ಕಳುಹಿಸಲಾಗುತ್ತಿದೆ…",
-  shareWaInProgress:
-    "{phone} ಗೆ ಪರಿಶೀಲನೆ ಕಳುಹಿಸಲಾಗಿದೆ. WhatsApp ತೆರೆದು YES ಉತ್ತರಿಸಲು ಹೇಳಿ — ನಂತರ ಪೂರ್ಣ ವರದಿ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಹೋಗುತ್ತದೆ.",
-  shareWaWaiting: "WhatsApp ನಲ್ಲಿ YES ಗಾಗಿ ಕಾಯಲಾಗುತ್ತಿದೆ…",
-  shareWaSendingReport: "YES ಸ್ವೀಕರಿಸಲಾಗಿದೆ — ವರದಿ ಕಳುಹಿಸಲಾಗುತ್ತಿದೆ…",
-  shareWaSuccess: "ವರದಿಯನ್ನು WhatsApp ನಲ್ಲಿ ತಲುಪಿಸಲಾಗಿದೆ.",
-  shareWaFailed: "WhatsApp ನಲ್ಲಿ ಕಳುಹಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ.",
-  shareWaReset: "ಬೇರೆ ಸಂಖ್ಯೆ",
-  shareWaConflict: "ಈ ಸಂಖ್ಯೆಗೆ ಪರಿಶೀಲನೆ ಈಗಾಗಲೇ ಬಾಕಿ ಇದೆ. ಸ್ವಲ್ಪ ನಿರೀಕ್ಷಿಸಿ ಅಥವಾ SMS / ನಕಲು ಬಳಸಿ.",
   videoTitle: "ವೀಡಿಯೊ ಸಮಾಲೋಚನೆ",
   videoOpenLink: "ಟೆಲಿಹೆಲ್ತ್ ಲಿಂಕ್ ತೆರೆಯಿರಿ",
   videoEmbed: "ಬ್ರೌಸರ್‌ನಲ್ಲಿ ಎಂಬೆಡ್",

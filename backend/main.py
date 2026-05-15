@@ -18,8 +18,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from whatsapp_consent import router as whatsapp_router
-
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")
 
@@ -34,9 +32,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-app.include_router(whatsapp_router)
-
 
 class PatientContext(BaseModel):
     age_band: Optional[str] = None  # child | adult | senior
