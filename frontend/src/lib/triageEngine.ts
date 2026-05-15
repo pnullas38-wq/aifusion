@@ -74,6 +74,32 @@ export function runLocalTriage(
     severity = "critical";
     risk_score = 94;
     is_emergency = true;
+  } else if (/\[mental_health_screen\]/i.test(text)) {
+    const crisisMatch = /crisis\s*flag:\s*true/i.test(text);
+    const m = text.match(/interest=(\d+),\s*mood=(\d+),\s*anxiety=(\d+),\s*worry=(\d+)/i);
+    const scores = m ? [1, 2, 3, 4].map((i) => parseInt(m[i]!, 10)) : [0, 0, 0, 0];
+    const total = scores.reduce((a, b) => a + b, 0);
+    if (crisisMatch) {
+      care_level = "emergency_room";
+      severity = "critical";
+      risk_score = 92;
+      is_emergency = true;
+      red_flags.push("Mental health crisis flag reported — seek immediate professional or emergency support.");
+    } else if (total >= 10) {
+      care_level = "clinic_visit";
+      severity = "high";
+      risk_score = 68;
+    } else if (total >= 6) {
+      care_level = "clinic_visit";
+      severity = "moderate";
+      risk_score = 54;
+    } else {
+      risk_score = Math.max(risk_score, 28 + total * 2);
+      if (total >= 4) {
+        care_level = "clinic_visit";
+        severity = "moderate";
+      }
+    }
   } else if (matchAny(text, CLINIC_PATTERNS) || (lower.includes("fever") && lower.includes("days"))) {
     care_level = "clinic_visit";
     severity = "moderate";

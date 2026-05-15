@@ -137,6 +137,36 @@ def rule_based_triage(message: str, ctx: Optional[PatientContext], sid: str) -> 
         risk_score = 94
         is_emergency = True
         red_flags.append("High-acuity language pattern — seek emergency care if symptoms are current")
+    elif "[mental_health_screen]" in lower:
+        crisis_match = re.search(r"crisis\s*flag:\s*true", text, re.I)
+        m = re.search(
+            r"interest=(\d+),\s*mood=(\d+),\s*anxiety=(\d+),\s*worry=(\d+)",
+            text,
+            re.I,
+        )
+        scores = [int(m.group(i)) for i in range(1, 5)] if m else [0, 0, 0, 0]
+        total = sum(scores)
+        if crisis_match:
+            care_level = "emergency_room"
+            severity = "critical"
+            risk_score = 92
+            is_emergency = True
+            red_flags.append(
+                "Mental health crisis flag reported — seek immediate professional or emergency support."
+            )
+        elif total >= 10:
+            care_level = "clinic_visit"
+            severity = "high"
+            risk_score = 68
+        elif total >= 6:
+            care_level = "clinic_visit"
+            severity = "moderate"
+            risk_score = 54
+        else:
+            risk_score = max(risk_score, 28 + total * 2)
+            if total >= 4:
+                care_level = "clinic_visit"
+                severity = "moderate"
     elif _match_any(text, CLINIC_PATTERNS) or ("fever" in lower and "days" in lower):
         care_level = "clinic_visit"
         severity = "moderate"
