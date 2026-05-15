@@ -64,6 +64,7 @@ type Dict = {
   videoEmbedBlocked: string;
   videoOpenNewTab: string;
   reportDownload: string;
+  reportPdfDownload: string;
   ehrDownload: string;
   ehrCopy: string;
   ehrCopied: string;
@@ -162,6 +163,7 @@ const en: Dict = {
     "This URL cannot run inside an embedded frame (the provider blocks it). Use Open telehealth link or a Jitsi room for in-app video.",
   videoOpenNewTab: "Open in new tab",
   reportDownload: "AI health report",
+  reportPdfDownload: "Download PDF report",
   ehrDownload: "EHR-style export",
   ehrCopy: "Copy FHIR JSON",
   ehrCopied: "FHIR bundle copied",
@@ -262,6 +264,7 @@ const hi: Dict = {
     "यह URL एम्बेड फ़्रेम में नहीं चल सकता (प्रदाता ब्लॉक करता है)। टेलीहेल्थ लिंक खोलें या इन-ऐप वीडियो के लिए Jitsi कमरा उपयोग करें।",
   videoOpenNewTab: "नए टैब में खोलें",
   reportDownload: "AI स्वास्थ्य रिपोर्ट",
+  reportPdfDownload: "PDF रिपोर्ट डाउनलोड",
   ehrDownload: "EHR-शैली निर्यात",
   ehrCopy: "FHIR JSON कॉपी",
   ehrCopied: "FHIR बंडल कॉपी हो गया",
@@ -362,6 +365,7 @@ const kn: Dict = {
     "ಈ URL ಅಂತರ್ಗತ ಫ್ರೇಮ್‌ನಲ್ಲಿ ಚಲಿಸುವುದಿಲ್ಲ (ಪೂರೈಕೆದಾರ ನಿರ್ಬಂಧಿಸುತ್ತಾರೆ). ಟೆಲಿಹೆಲ್ತ್ ಲಿಂಕ್ ಅಥವಾ Jitsi ಕೊಠಡಿ ಬಳಸಿ.",
   videoOpenNewTab: "ಹೊಸ ಟ್ಯಾಬ್‌ನಲ್ಲಿ ತೆರೆಯಿರಿ",
   reportDownload: "AI ಆರೋಗ್ಯ ವರದಿ",
+  reportPdfDownload: "PDF ವರದಿ ಡೌನ್‌ಲೋಡ್",
   ehrDownload: "EHR-ಶೈಲಿ ರಫ್ತು",
   ehrCopy: "FHIR JSON ನಕಲಿಸಿ",
   ehrCopied: "FHIR ಬಂಡಲ್ ನಕಲಿಸಲಾಗಿದೆ",

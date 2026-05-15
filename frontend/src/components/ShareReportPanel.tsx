@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { MessageCircle, Smartphone, Copy, Loader2 } from "lucide-react";
+import { MessageCircle, Smartphone, Copy, Loader2, FileDown } from "lucide-react";
+import { downloadHealthReportPdf } from "@/lib/healthReportPdf";
 import { t, type UILang } from "@/lib/triageLocale";
 import { getStoredUILang } from "@/lib/uiLang";
 import { loadLastTriage } from "@/lib/triagePersistence";
@@ -132,6 +133,27 @@ export default function ShareReportPanel() {
         >
           <Copy size={18} />
           {d.shareCopyText}
+        </button>
+
+        <button
+          type="button"
+          disabled={busy}
+          onClick={async () => {
+            if (!loadLastTriage()) {
+              showToast(d.shareNoReport);
+              return;
+            }
+            setBusy(true);
+            try {
+              await downloadHealthReportPdf();
+            } finally {
+              setBusy(false);
+            }
+          }}
+          className="inline-flex items-center gap-2 px-5 py-3 rounded-xl border border-white/15 hover:border-v-cyan/40 text-xs font-mono uppercase tracking-wider text-v-cyan disabled:opacity-50"
+        >
+          <FileDown size={18} />
+          {d.reportPdfDownload}
         </button>
       </div>
 

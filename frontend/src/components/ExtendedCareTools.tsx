@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Video, FileDown, Database, Copy, ExternalLink, X, Layers } from "lucide-react";
 import { downloadAiHealthReportMarkdown } from "@/lib/healthReport";
+import { downloadHealthReportPdf } from "@/lib/healthReportPdf";
 import { copyEhrJsonToClipboard, downloadEhrJsonBundle } from "@/lib/ehrExport";
 import { t, type UILang } from "@/lib/triageLocale";
 import { getStoredUILang } from "@/lib/uiLang";
@@ -53,7 +54,7 @@ export default function ExtendedCareTools() {
 
   return (
     <div className="space-y-4">
-      <div className="grid sm:grid-cols-3 gap-4">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="glass rounded-2xl p-6 border border-white/10 flex flex-col items-center text-center gap-3">
           <Video className="text-v-cyan" size={28} />
           <span className="text-[10px] font-mono uppercase tracking-widest text-v-muted">{d.videoTitle}</span>
@@ -87,6 +88,16 @@ export default function ExtendedCareTools() {
           <FileDown className="text-v-emerald" size={28} />
           <span className="text-[10px] font-mono uppercase tracking-widest text-v-muted">{d.reportDownload}</span>
           <span className="text-xs font-light text-v-text/80">Markdown · triage + vitals</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => void downloadHealthReportPdf()}
+          className="glass rounded-2xl p-6 border border-white/10 hover:border-v-cyan/30 transition-all flex flex-col items-center text-center gap-3"
+        >
+          <FileDown className="text-v-cyan" size={28} />
+          <span className="text-[10px] font-mono uppercase tracking-widest text-v-muted">{d.reportPdfDownload}</span>
+          <span className="text-xs font-light text-v-text/80">PDF · branded report</span>
         </button>
 
         <div className="glass rounded-2xl p-6 border border-white/10 flex flex-col items-center text-center gap-3">

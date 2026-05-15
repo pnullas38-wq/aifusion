@@ -113,6 +113,19 @@ export default function AIAssistant() {
   useEffect(() => {
     setStoredUILang(patientContext.language || "en");
   }, [patientContext.language]);
+
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      savePatientContextSnapshot({
+        ...patientContext,
+        age_band: patientContext.age_band || undefined,
+        chronic_conditions: patientContext.chronic_conditions?.trim() || undefined,
+        allergies: patientContext.allergies?.trim() || undefined,
+        medications: patientContext.medications?.trim() || undefined,
+      });
+    }, 400);
+    return () => clearTimeout(id);
+  }, [patientContext]);
   const [lastTriage, setLastTriage] = useState<TriageResponse | null>(() =>
     typeof window !== "undefined" ? loadLastTriage() : null
   );
