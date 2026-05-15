@@ -29,9 +29,9 @@ export default function SignupPage() {
         body: JSON.stringify({ email, password }),
       });
       const raw = await res.text();
-      let data: { error?: string } = {};
+      let data: { error?: string; storePath?: string } = {};
       try {
-        data = JSON.parse(raw) as { error?: string };
+        data = JSON.parse(raw) as { error?: string; storePath?: string };
       } catch {
         /* non-JSON error body */
       }
@@ -42,6 +42,9 @@ export default function SignupPage() {
             : raw.slice(0, 200) || "Could not create account."
         );
         return;
+      }
+      if (typeof data.storePath === "string") {
+        console.info("[VITALIS AUTH] Users file:", data.storePath);
       }
       router.replace("/login?registered=1");
     } catch {

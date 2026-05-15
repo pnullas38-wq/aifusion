@@ -11,22 +11,111 @@ export type UserRecord = {
 
 type Store = { users: UserRecord[] };
 
+function hasNextDependency(dir: string): boolean {
+  const pkgPath = path.join(dir, "package.json");
+  if (!fs.existsSync(pkgPath)) return false;
+  try {
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8")) as {
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+    };
+    return Boolean(pkg.dependencies?.next || pkg.devDependencies?.next);
+  } catch {
+    return false;
+  }
+}
+
+function isNextAppDir(dir: string): boolean {
+  const hasCfg =
+    fs.existsSync(path.join(dir, "next.config.ts")) ||
+    fs.existsSync(path.join(dir, "next.config.mjs")) ||
+    fs.existsSync(path.join(dir, "next.config.js"));
+  return hasCfg && hasNextDependency(dir);
+}
+
+/**
+ * Resolves the folder that contains next.config + package.json with `next`
+ * (normally …/frontend), even when `process.cwd()` is the monorepo root.
+ */
+export function findNextAppRoot(): string {
+  let dir = path.resolve(process.cwd());
+  for (let i = 0; i < 14; i++) {
+    if (isNextAppDir(dir)) return dir;
+    const fe = path.join(dir, "frontend");
+    if (fs.existsSync(fe) && isNextAppDir(fe)) return fe;
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+
+  const scanned = scanForNextApp(process.cwd(), 4);
+  if (scanned) return scanned;
+
+  return path.resolve(process.cwd());
+}
+
+const SKIP_DIR = new Set([
+  "node_modules",
+  ".next",
+  ".git",
+  "dist",
+  "build",
+  "coverage",
+]);
+
+function scanForNextApp(start: string, maxDepth: number): string | null {
+  const startAbs = path.resolve(start);
+  const queue: { d: string; depth: number }[] = [{ d: startAbs, depth: 0 }];
+  const seen = new Set<string>();
+  let budget = 250;
+
+  while (queue.length > 0 && budget-- > 0) {
+    const { d, depth } = queue.shift()!;
+    if (seen.has(d) || depth > maxDepth) continue;
+    seen.add(d);
+    if (isNextAppDir(d)) return d;
+    if (depth === maxDepth) continue;
+
+    let entries: fs.Dirent[] = [];
+    try {
+      entries = fs.readdirSync(d, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const e of entries) {
+      if (!e.isDirectory() || SKIP_DIR.has(e.name)) continue;
+      queue.push({ d: path.join(d, e.name), depth: depth + 1 });
+    }
+  }
+  return null;
+}
+
+let cachedUsersFile: string | null = null;
+
 function resolveUsersFile(): string {
   const fromEnv = process.env.AUTH_USERS_FILE?.trim();
   if (fromEnv) return path.resolve(fromEnv);
   const dirFromEnv = process.env.AUTH_DATA_DIR?.trim();
-  const baseDir = dirFromEnv
-    ? path.resolve(dirFromEnv)
-    : path.join(process.cwd(), "data");
-  return path.join(baseDir, "users.json");
+  if (dirFromEnv) return path.join(path.resolve(dirFromEnv), "users.json");
+  return path.join(findNextAppRoot(), "data", "users.json");
 }
 
-const USERS_FILE = resolveUsersFile();
-const DATA_DIR = path.dirname(USERS_FILE);
+export function getUsersFilePath(): string {
+  if (!cachedUsersFile) {
+    cachedUsersFile = resolveUsersFile();
+  }
+  return cachedUsersFile;
+}
+
+/** Call after changing AUTH_* env at runtime (tests). */
+export function resetUsersFileCache(): void {
+  cachedUsersFile = null;
+}
 
 function readStore(): Store {
+  const usersFile = getUsersFilePath();
   try {
-    const raw = fs.readFileSync(USERS_FILE, "utf-8");
+    const raw = fs.readFileSync(usersFile, "utf-8");
     const data = JSON.parse(raw) as Store;
     if (!data || !Array.isArray(data.users)) return { users: [] };
     return data;
@@ -36,13 +125,15 @@ function readStore(): Store {
 }
 
 function writeStore(store: Store): void {
+  const usersFile = getUsersFilePath();
+  const dataDir = path.dirname(usersFile);
   try {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-    fs.writeFileSync(USERS_FILE, JSON.stringify(store), "utf-8");
+    fs.mkdirSync(dataDir, { recursive: true });
+    fs.writeFileSync(usersFile, JSON.stringify(store), "utf-8");
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     throw new Error(
-      `Could not write user data to ${USERS_FILE}: ${msg}. Set AUTH_USERS_FILE or AUTH_DATA_DIR to a writable folder.`
+      `Could not write user data to ${usersFile}: ${msg}. Set AUTH_USERS_FILE or AUTH_DATA_DIR to a writable folder.`
     );
   }
 }
@@ -73,10 +164,11 @@ export function createUser(email: string, passwordHash: string): UserRecord {
   };
   store.users.push(user);
   writeStore(store);
+
   const roundTrip = readStore().users.find((u) => u.email === e);
   if (!roundTrip) {
     throw new Error(
-      "Account was not saved. If you use serverless hosting (e.g. Vercel), file storage is not persistent—use a database or a writable AUTH_USERS_FILE on a VPS."
+      `Account was not readable after save (file: ${getUsersFilePath()}). On serverless hosts (e.g. Vercel) disk is not persistent across requests—run locally, use a VPS with a volume, or connect a database.`
     );
   }
   return user;

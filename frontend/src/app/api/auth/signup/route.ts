@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { validateSignupEmail, validateSignupPassword } from "@/lib/authValidation";
 import { hashPassword } from "@/lib/password";
-import { createUser, EmailInUseError } from "@/lib/usersStore";
+import { createUser, EmailInUseError, getUsersFilePath } from "@/lib/usersStore";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   let body: { email?: string; password?: string };
@@ -28,7 +29,11 @@ export async function POST(req: Request) {
   try {
     const passwordHash = await hashPassword(password);
     createUser(email, passwordHash);
-    return NextResponse.json({ ok: true });
+    const body: { ok: true; storePath?: string } = { ok: true };
+    if (process.env.NODE_ENV === "development") {
+      body.storePath = getUsersFilePath();
+    }
+    return NextResponse.json(body);
   } catch (e) {
     if (
       e instanceof EmailInUseError ||

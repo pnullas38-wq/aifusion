@@ -5,6 +5,7 @@ import { findUserByEmail } from "@/lib/usersStore";
 import { AUTH_COOKIE, signSession } from "@/lib/authToken";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   let body: { email?: string; password?: string };
