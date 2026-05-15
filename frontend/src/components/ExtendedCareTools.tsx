@@ -7,6 +7,7 @@ import { copyEhrJsonToClipboard, downloadEhrJsonBundle } from "@/lib/ehrExport";
 import { t, type UILang } from "@/lib/triageLocale";
 import { getStoredUILang } from "@/lib/uiLang";
 import DiseaseVideoConsult from "@/components/DiseaseVideoConsult";
+import { getTelehealthUrl } from "@/lib/telehealthUrl";
 
 /** Google Meet, Zoom, Teams, etc. send headers that block <iframe>; Jitsi / 8x8 usually work. */
 function telehealthEmbedMode(url: string): "iframe" | "blocked" {
@@ -22,7 +23,7 @@ function telehealthEmbedMode(url: string): "iframe" | "blocked" {
 }
 
 export default function ExtendedCareTools() {
-  const tele = process.env.NEXT_PUBLIC_TELEHEALTH_URL?.trim();
+  const tele = getTelehealthUrl();
   const [lang, setLang] = useState<UILang>(() => getStoredUILang());
   const [showEmbed, setShowEmbed] = useState(false);
   const [ehrToast, setEhrToast] = useState<string | null>(null);
@@ -58,13 +59,9 @@ export default function ExtendedCareTools() {
           <span className="text-[10px] font-mono uppercase tracking-widest text-v-muted">{d.videoTitle}</span>
           <div className="flex flex-wrap gap-2 justify-center">
             <a
-              href={tele || "#telehealth"}
-              onClick={(e) => {
-                if (!tele) {
-                  e.preventDefault();
-                  flash(d.videoNoUrl);
-                }
-              }}
+              href={tele}
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-[10px] font-mono uppercase tracking-wider px-3 py-2 rounded-lg border border-white/10 hover:border-v-cyan/40 inline-flex items-center gap-1.5 text-v-text"
             >
               <ExternalLink size={14} />
@@ -72,7 +69,6 @@ export default function ExtendedCareTools() {
             </a>
             <button
               type="button"
-              disabled={!tele}
               onClick={() => setShowEmbed(true)}
               className="text-[10px] font-mono uppercase tracking-wider px-3 py-2 rounded-lg border border-white/10 hover:border-v-cyan/40 disabled:opacity-40 inline-flex items-center gap-1.5"
             >
@@ -81,7 +77,6 @@ export default function ExtendedCareTools() {
             </button>
           </div>
           <p className="text-[10px] text-v-muted/80 font-light leading-snug">{d.videoHelp}</p>
-          {!tele && <p className="text-[10px] text-amber-200/70 font-light leading-snug px-1">{d.videoEnvHint}</p>}
         </div>
 
         <button
@@ -121,7 +116,7 @@ export default function ExtendedCareTools() {
 
       {ehrToast && <p className="text-[11px] font-mono text-v-emerald">{ehrToast}</p>}
 
-      {showEmbed && tele && (
+      {showEmbed && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
           <div className="glass rounded-3xl border border-white/15 w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
