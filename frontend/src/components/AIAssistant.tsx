@@ -162,7 +162,7 @@ export default function AIAssistant() {
       savePatientContextSnapshot(ctxPayload);
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent(TRIAGE_EVENT, { detail: { triage } }));
-        if (triage.is_emergency) {
+        if (triage.is_emergency || triage.severity === "critical") {
           window.dispatchEvent(new CustomEvent("v-emergency-trigger", { detail: { active: true } }));
         }
       }
@@ -387,17 +387,22 @@ export default function AIAssistant() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             className={`mx-4 mt-3 rounded-2xl border p-4 shrink-0 ${
-              lastTriage.is_emergency || lastTriage.care_level === "emergency_room"
+              lastTriage.is_emergency || lastTriage.severity === "critical" || lastTriage.care_level === "emergency_room"
                 ? "border-v-red/40 bg-v-red/10"
-                : "border-white/10 bg-white/[0.03]"
+                : lastTriage.severity === "high"
+                  ? "border-amber-400/35 bg-amber-400/5"
+                  : "border-white/10 bg-white/[0.03]"
             }`}
           >
             <div className="flex flex-wrap items-center gap-2 mb-3">
               <CareBadge level={lastTriage.care_level} lang={L} />
               <span className="text-[10px] font-mono text-v-muted uppercase">
                 {d.riskLabel} {lastTriage.risk_score}/100 · {lastTriage.severity}
+                {lastTriage.ai_confidence != null ? ` · ${lastTriage.ai_confidence}%` : ""}
               </span>
-              {(lastTriage.is_emergency || lastTriage.care_level === "emergency_room") && (
+              {(lastTriage.is_emergency ||
+                lastTriage.severity === "critical" ||
+                lastTriage.care_level === "emergency_room") && (
                 <span className="inline-flex items-center gap-1 text-[10px] font-mono uppercase text-v-red">
                   <AlertTriangle size={12} />
                   {d.emergencyBadge}
@@ -413,6 +418,16 @@ export default function AIAssistant() {
               />
             </div>
             <p className="text-[11px] text-v-muted font-light leading-relaxed mb-2">{lastTriage.care_recommendation_title}</p>
+            {lastTriage.emergency_recommendation && (
+              <p className="text-[11px] text-v-red/90 font-light leading-relaxed mb-2">
+                {lastTriage.emergency_recommendation}
+              </p>
+            )}
+            {lastTriage.hospital_recommendation && !lastTriage.emergency_recommendation && (
+              <p className="text-[11px] text-amber-200/90 font-light leading-relaxed mb-2">
+                {lastTriage.hospital_recommendation}
+              </p>
+            )}
             {lastTriage.nlp_symptoms.length > 0 && (
               <p className="text-[10px] font-mono text-v-cyan/80 mb-1">
                 {d.nlpSymptoms}: {lastTriage.nlp_symptoms.slice(0, 8).join(", ")}
@@ -425,10 +440,12 @@ export default function AIAssistant() {
                 ))}
               </ul>
             )}
-            {(lastTriage.is_emergency || lastTriage.care_level === "emergency_room") && (
-              <div className="mt-3 pt-3 border-t border-v-red/25">
+            {(lastTriage.is_emergency ||
+              lastTriage.severity === "critical" ||
+              lastTriage.care_level === "emergency_room") && (
+              <motion.div className="mt-3 pt-3 border-t border-v-red/25">
                 <Emergency911Panel compact />
-              </div>
+              </motion.div>
             )}
             <p className="text-[9px] text-v-muted/80 mt-2 flex items-start gap-1.5">
               <Globe2 size={12} className="shrink-0 mt-0.5 text-v-cyan/60" />

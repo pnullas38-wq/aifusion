@@ -30,4 +30,8 @@ export interface TriageResponse {
   red_flags: string[];
   care_recommendation_title: string;
   accessibility_note: string;
+  /** Rule-engine or model confidence 0–100 (when provided). */
+  ai_confidence?: number;
+  emergency_recommendation?: string | null;
+  hospital_recommendation?: string | null;
 }

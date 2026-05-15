@@ -68,6 +68,14 @@ export function normalizeTriagePayload(data: unknown): TriageResponse {
       typeof o.accessibility_note === "string" && o.accessibility_note.trim()
         ? o.accessibility_note.trim()
         : "For underserved areas: save this summary; connect when network allows for full AI review.",
+    ai_confidence:
+      o.ai_confidence != null && !Number.isNaN(Number(o.ai_confidence))
+        ? Math.max(0, Math.min(100, Math.round(Number(o.ai_confidence))))
+        : undefined,
+    emergency_recommendation:
+      typeof o.emergency_recommendation === "string" ? o.emergency_recommendation : null,
+    hospital_recommendation:
+      typeof o.hospital_recommendation === "string" ? o.hospital_recommendation : null,
   };
 }
 

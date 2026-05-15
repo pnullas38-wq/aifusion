@@ -18,6 +18,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+from triage_severity import classify_symptom_severity, should_activate_emergency_alert
+
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")
 
@@ -76,39 +78,6 @@ def _extract_tokens(text: str) -> list[str]:
     return out[:12]
 
 
-ER_PATTERNS = [
-    r"chest\s+pain",
-    r"can'?t\s+breathe",
-    r"cannot\s+breathe",
-    r"struggling\s+to\s+breathe",
-    r"\bstroke\b",
-    r"unconscious",
-    r"severe\s+bleeding",
-    r"suicid",
-    r"anaphylaxis",
-    r"face\s+drooping",
-    r"slurred\s+speech",
-    r"heart\s+attack",
-    r"overdose",
-]
-
-CLINIC_PATTERNS = [
-    r"high\s+fever",
-    r"vomit(ing)?\s+blood",
-    r"blood\s+in\s+stool",
-    r"persistent\s+pain",
-    r"worse\s+over\s+(days|weeks)",
-    r"dehydrat",
-    r"\binfection\b",
-    r"\buti\b",
-]
-
-
-def _match_any(text: str, patterns: list[str]) -> bool:
-    t = text.lower()
-    return any(re.search(p, t) for p in patterns)
-
-
 def rule_based_triage(message: str, ctx: Optional[PatientContext], sid: str) -> dict[str, Any]:
     """Heuristic triage when Gemini is offline — mirrors frontend engine for consistency."""
     text = message.strip()
@@ -116,27 +85,15 @@ def rule_based_triage(message: str, ctx: Optional[PatientContext], sid: str) -> 
     nlp_symptoms = _extract_tokens(text)
     red_flags: list[str] = []
 
-    chronic = (ctx.chronic_conditions or "").lower() if ctx else ""
-    allergies = (ctx.allergies or "").lower() if ctx else ""
-    if "heart" in chronic or "cardiac" in chronic:
-        red_flags.append("Cardiac history reported")
-    if "diabet" in chronic:
-        red_flags.append("Diabetes history reported")
-    if len(allergies) > 2:
-        red_flags.append("Allergies on file")
-
     care_level = "home_care"
     severity = "low"
     risk_score = 22
     is_emergency = False
+    confidence_score = 55
+    emergency_recommendation = None
+    hospital_recommendation = None
 
-    if _match_any(text, ER_PATTERNS):
-        care_level = "emergency_room"
-        severity = "critical"
-        risk_score = 94
-        is_emergency = True
-        red_flags.append("High-acuity language pattern — seek emergency care if symptoms are current")
-    elif "[mental_health_screen]" in lower:
+    if "[mental_health_screen]" in lower:
         crisis_match = re.search(r"crisis\s*flag:\s*true", text, re.I)
         m = re.search(
             r"interest=(\d+),\s*mood=(\d+),\s*anxiety=(\d+),\s*worry=(\d+)",
@@ -166,18 +123,35 @@ def rule_based_triage(message: str, ctx: Optional[PatientContext], sid: str) -> 
             if total >= 4:
                 care_level = "clinic_visit"
                 severity = "moderate"
-    elif _match_any(text, CLINIC_PATTERNS) or ("fever" in lower and "days" in lower):
-        care_level = "clinic_visit"
-        severity = "moderate"
-        risk_score = 58
-    elif any(k in lower for k in ("pain", "hurt", "ache")):
-        care_level = "clinic_visit"
-        severity = "moderate"
-        risk_score = 48
-    elif any(k in lower for k in ("cough", "cold", "mild")):
-        care_level = "home_care"
-        severity = "low"
-        risk_score = 28
+        confidence_score = 75 if care_level != "emergency_room" else 88
+    else:
+        assessed = classify_symptom_severity(text, ctx)
+        care_level = assessed.care_level
+        severity = assessed.severity
+        risk_score = assessed.risk_score
+        is_emergency = should_activate_emergency_alert(assessed)
+        red_flags = assessed.red_flags
+        confidence_score = assessed.confidence_score
+        emergency_recommendation = assessed.emergency_recommendation
+        hospital_recommendation = assessed.hospital_recommendation
+
+        if severity == "low":
+            if any(k in lower for k in ("pain", "hurt", "ache")):
+                care_level = "clinic_visit"
+                severity = "moderate"
+                risk_score = 48
+            elif any(k in lower for k in ("cough", "cold", "mild")):
+                care_level = "home_care"
+                severity = "low"
+                risk_score = 28
+            elif "fever" in lower and "days" in lower:
+                care_level = "clinic_visit"
+                severity = "moderate"
+                risk_score = 58
+        elif assessed.severity == "critical":
+            is_emergency = True
+            care_level = "emergency_room"
+            severity = "critical"
 
     if ctx and ctx.age_band == "senior" and care_level == "home_care" and risk_score < 40:
         risk_score = min(55, risk_score + 12)
@@ -187,12 +161,15 @@ def rule_based_triage(message: str, ctx: Optional[PatientContext], sid: str) -> 
     LOC = {
         "en": {
             "title_er": "Emergency department — immediate in-person evaluation",
+            "title_clinic_urgent": "Urgent clinic / hospital — same-day evaluation",
             "title_clinic": "Clinic or primary care — schedule evaluation",
             "title_home": "Home care — self-management & monitoring",
             "ai_er": "Triage (rule engine): Possible emergency pattern from your description. {title}. This is not a diagnosis—if you are in danger, call your local emergency number now.",
+            "ai_high": "Triage (rule engine): Your symptoms suggest urgent medical attention. {title}. Seek in-person care today if symptoms are ongoing.",
             "ai_clinic": "Triage (rule engine): Your symptoms may warrant a clinician visit soon. {title}. Bring a list of medications and when symptoms started.",
             "ai_home": "Triage (rule engine): Pattern suggests self-care with monitoring may be reasonable. {title}. Seek care if symptoms worsen or new red flags appear.",
             "follow_er": "Are these symptoms happening right now? If yes, seek emergency care immediately. If not, when did they begin?",
+            "follow_high": "Are symptoms worsening in the last hour? Any difficulty breathing, chest pain, or confusion?",
             "follow_clinic": "Can you share onset timing, severity 1–10, and any new symptoms since yesterday?",
             "follow_home": "What makes symptoms better or worse? Any chronic conditions or daily medications?",
             "note": "Rural / low-connectivity mode: on-server rules without generative AI. Enable GEMINI_API_KEY for deeper NLP.",
@@ -227,10 +204,16 @@ def rule_based_triage(message: str, ctx: Optional[PatientContext], sid: str) -> 
     }
     L = LOC.get(lang, LOC["en"])
 
+    extra = emergency_recommendation or hospital_recommendation or ""
+
     if care_level == "emergency_room":
         title = L["title_er"]
-        ai = L["ai_er"].format(title=title)
+        ai = L["ai_er"].format(title=title) + (f" {extra}" if extra else "")
         follow = L["follow_er"]
+    elif severity == "high":
+        title = L.get("title_clinic_urgent", L["title_clinic"])
+        ai = L.get("ai_high", L["ai_clinic"]).format(title=title) + (f" {extra}" if extra else "")
+        follow = L.get("follow_high", L["follow_clinic"])
     elif care_level == "clinic_visit":
         title = L["title_clinic"]
         ai = L["ai_clinic"].format(title=title)
@@ -242,6 +225,8 @@ def rule_based_triage(message: str, ctx: Optional[PatientContext], sid: str) -> 
 
     note = L["note"]
     nlp_sum = ("Tokens: " + ", ".join(nlp_symptoms[:6])) if nlp_symptoms else L["nlp_empty"]
+    if nlp_symptoms:
+        nlp_sum += f" · Confidence {confidence_score}%"
 
     return {
         "session_id": sid,
@@ -257,6 +242,9 @@ def rule_based_triage(message: str, ctx: Optional[PatientContext], sid: str) -> 
         "red_flags": red_flags,
         "care_recommendation_title": title,
         "accessibility_note": note,
+        "ai_confidence": confidence_score,
+        "emergency_recommendation": emergency_recommendation,
+        "hospital_recommendation": hospital_recommendation,
     }
 
 
