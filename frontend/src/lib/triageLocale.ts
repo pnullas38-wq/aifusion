@@ -29,6 +29,7 @@ type Dict = {
   analyzing: string;
   inputPh: string;
   disclaimer: string;
+  chatNewSession: string;
   voiceUnsupported: string;
   channelError: string;
   chipCold: string;
@@ -119,6 +120,8 @@ const en: Dict = {
   inputPh: "Describe symptoms (multi-turn supported)…",
   disclaimer:
     "Educational demo — not a substitute for licensed medical care. Prioritizes early intervention & appropriate care levels.",
+  chatNewSession:
+    "This triage round is complete — the chat has been cleared for a new consultation. Your last summary remains available for share/export where supported.",
   voiceUnsupported: "Voice recognition is not supported in this browser. Please use Chrome or Edge.",
   channelError: "Channel interrupted. Please retry. If symptoms are severe, contact emergency services.",
   chipCold: "Mild cold symptoms",
@@ -214,6 +217,8 @@ const hi: Dict = {
   inputPh: "लक्षण लिखें (बहु-चक्र वार्तालाप)…",
   disclaimer:
     "शैक्षिक डेमो — यह लाइसेंस प्राप्त चिकित्सा देखभाल का विकल्प नहीं है। उचित देखभाल स्तर पर जोर।",
+  chatNewSession:
+    "यह ट्राइज राउंड पूर्ण — नई सलाह के लिए चैट साफ़ कर दी गई। अंतिम सारांश साझा/निर्यात (जहाँ उपलब्ध) के लिए बना रहता है।",
   voiceUnsupported: "इस ब्राउज़र में आवाज़ पहचान समर्थित नहीं। कृपया Chrome या Edge उपयोग करें।",
   channelError: "संपर्क टूट गया। पुनः प्रयास करें। गंभीर लक्षण हों तो आपात सेवा कॉल करें।",
   chipCold: "हल्का सर्दी जुकाम",
@@ -308,6 +313,8 @@ const kn: Dict = {
   inputPh: "ಲಕ್ಷಣಗಳನ್ನು ವಿವರಿಸಿ (ಬಹು-ಸಂವಾದ)…",
   disclaimer:
     "ಶೈಕ್ಷಣಿಕ ಡೆಮೊ — ಪರವಾನಗಿ ಪಡೆದ ವೈದ್ಯಕೀಯ ಆರೈಕೆಯ ಬದಲಿ ಅಲ್ಲ. ಸರಿಯಾದ ಆರೈಕೆ ಮಟ್ಟಕ್ಕೆ ಆದ್ಯತೆ.",
+  chatNewSession:
+    "ಈ ಟ್ರೈಜ್ ಸುತ್ತು ಪೂರ್ಣ — ಹೊಸ ಸಮಾಲೋಚನೆಗಾಗಿ ಚಾಟ್ ಅನ್ನು ತೆರವುಗೊಳಿಸಲಾಗಿದೆ. ಕೊನೆಯ ಸಾರಾಂಶ ಹಂಚಿಕೆ/ರಫ್ತು (ಲಭ್ಯವಿರುವಲ್ಲಿ) ಉಳಿಯುತ್ತದೆ.",
   voiceUnsupported: "ಈ ಬ್ರೌಸರ್‌ನಲ್ಲಿ ಧ್ವನಿ ಗುರುತಿಸುವಿಕೆ ಬೆಂಬಲಿತವಲ್ಲ. Chrome ಅಥವಾ Edge ಬಳಸಿ.",
   channelError: "ಸಂಪರ್ಕ ತುಂಡಾಗಿದೆ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ. ತೀವ್ರ ಲಕ್ಷಣಗಳಿದ್ದರೆ ತುರ್ತು ಸೇವೆಗೆ ಕರೆ ಮಾಡಿ.",
   chipCold: "ಸೌಮ್ಯ ಶೀತಿ ಲಕ್ಷಣಗಳು",

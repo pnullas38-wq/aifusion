@@ -32,6 +32,7 @@ interface Message {
 }
 
 const TRIAGE_EVENT = "v-triage-update";
+const CHAT_RESET_DELAY_MS = 2200;
 
 function CareBadge({ level, lang }: { level: TriageResponse["care_level"]; lang: PatientTriageContext["language"] }) {
   const L = lang || "en";
@@ -79,8 +80,19 @@ export default function AIAssistant() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const sessionIdRef = useRef<string | undefined>(undefined);
+  const triageTurnRef = useRef(0);
+  const pendingChatResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef("");
   const sendingRef = useRef(false);
+
+  useEffect(() => {
+    return () => {
+      if (pendingChatResetRef.current) {
+        clearTimeout(pendingChatResetRef.current);
+        pendingChatResetRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     inputRef.current = input;
@@ -97,6 +109,11 @@ export default function AIAssistant() {
   const handleSend = useCallback(async (textOverride?: string) => {
     const textToSend = (textOverride ?? inputRef.current).trim();
     if (!textToSend || sendingRef.current) return;
+
+    if (pendingChatResetRef.current) {
+      clearTimeout(pendingChatResetRef.current);
+      pendingChatResetRef.current = null;
+    }
 
     sendingRef.current = true;
     const userMsg: Message = { id: `u-${Date.now()}`, role: "user", text: textToSend };
@@ -116,6 +133,7 @@ export default function AIAssistant() {
       await new Promise((resolve) => setTimeout(resolve, 350 + Math.random() * 250));
 
       let triage: TriageResponse;
+      let usedLocalTriage = false;
 
       try {
         triage = await sendTriageMessage({
@@ -125,6 +143,7 @@ export default function AIAssistant() {
         });
         sessionIdRef.current = triage.session_id || sessionIdRef.current;
       } catch {
+        usedLocalTriage = true;
         const sid = sessionIdRef.current || crypto.randomUUID();
         sessionIdRef.current = sid;
         triage = runLocalTriage(textToSend, ctxPayload, sid);
@@ -133,6 +152,10 @@ export default function AIAssistant() {
       const follow = triage.follow_up_question?.trim();
       const body = triage.ai_message?.trim() || "";
       const responseText = follow ? `${body}\n\n${follow}` : body;
+
+      triageTurnRef.current += 1;
+      const diagnosisComplete =
+        !follow || (usedLocalTriage && triageTurnRef.current >= 2);
 
       setLastTriage(triage);
       saveLastTriage(triage);
@@ -151,7 +174,8 @@ export default function AIAssistant() {
       };
       setMessages((prev) => [...prev, aiMsg]);
 
-      const speak = textOverride == null && responseText.length > 0;
+      const speak =
+        textOverride == null && responseText.length > 0 && !diagnosisComplete;
       if ("speechSynthesis" in window && speak) {
         try {
           const utterance = new SpeechSynthesisUtterance(responseText.slice(0, 320));
@@ -164,6 +188,32 @@ export default function AIAssistant() {
         } catch (e) {
           console.error("Speech Synthesis Error:", e);
         }
+      }
+
+      if (diagnosisComplete && typeof window !== "undefined") {
+        pendingChatResetRef.current = setTimeout(() => {
+          pendingChatResetRef.current = null;
+          triageTurnRef.current = 0;
+          sessionIdRef.current = undefined;
+          setLastTriage(null);
+          const lang = ctxPayload.language || getStoredUILang();
+          const note = t(lang).chatNewSession;
+          setMessages([
+            {
+              id: `w-${Date.now()}`,
+              role: "ai",
+              text: `${welcomeMessage(lang)}\n\n${note}`,
+            },
+          ]);
+          try {
+            window.speechSynthesis.cancel();
+          } catch {
+            /* ignore */
+          }
+          window.dispatchEvent(
+            new CustomEvent("v-emergency-trigger", { detail: { active: false } })
+          );
+        }, CHAT_RESET_DELAY_MS);
       }
     } catch (err) {
       console.error("Chatbot Core Error:", err);
