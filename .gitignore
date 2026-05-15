@@ -17,6 +17,9 @@ build/
 .DS_Store
 *.pem
 
+# local Vitalis auth user store (hashed passwords — do not commit)
+frontend/data/users.json
+
 # debug
 npm-debug.log*
 yarn-debug.log*

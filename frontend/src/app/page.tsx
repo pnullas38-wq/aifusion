@@ -17,7 +17,8 @@ import {
   Database,
   X,
   Layers,
-  GitBranch
+  GitBranch,
+  LogOut
 } from "lucide-react";
 
 // Dynamic Imports with ssr: false to prevent hydration/build issues with Three.js/Recharts
@@ -199,13 +200,26 @@ export default function Home() {
               <Bell size={20} className={isEmergencyMode ? 'animate-bounce' : ''} />
             </motion.button>
             <div className="h-8 w-px bg-white/10" />
+            <motion.button
+              type="button"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              title="Sign out"
+              onClick={async () => {
+                await fetch("/api/auth/logout", { method: "POST" });
+                window.location.href = "/login";
+              }}
+              className="p-3 rounded-2xl glass text-v-muted hover:text-v-cyan hover:bg-white/5 transition-all"
+            >
+              <LogOut size={20} />
+            </motion.button>
             <button className="flex items-center gap-4 pl-2 pr-6 py-2 glass rounded-2xl hover:bg-white/5 transition-all group">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gray-700 to-gray-900 border border-white/10 flex items-center justify-center overflow-hidden">
                  <Fingerprint className="text-white/20 group-hover:text-v-cyan transition-colors" size={24} />
               </div>
               <div className="text-left">
                 <span className="block text-[10px] font-mono tracking-widest uppercase leading-none text-white/50">P_PN_402</span>
-                <span className="text-[8px] font-mono text-v-emerald uppercase">Authenticated</span>
+                <span className="text-[8px] font-mono text-v-emerald uppercase">Session active</span>
               </div>
             </button>
           </div>
