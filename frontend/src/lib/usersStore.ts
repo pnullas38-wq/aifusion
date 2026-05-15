@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { tmpdir } from "os";
 import { randomUUID } from "crypto";
 
 export type UserRecord = {
@@ -90,6 +91,17 @@ function scanForNextApp(start: string, maxDepth: number): string | null {
   return null;
 }
 
+/** Lambda has a read-only /var/task; Vercel is similar. Use a writable tmp dir unless overridden. */
+function isServerlessReadonlyDeploy(): boolean {
+  if (process.env.AUTH_USE_TMP_DIR === "1") return true;
+  if (process.env.AWS_LAMBDA_FUNCTION_NAME) return true;
+  if (process.env.AWS_EXECUTION_ENV) return true;
+  if (process.env.LAMBDA_TASK_ROOT) return true;
+  if (process.env.VERCEL) return true;
+  if (process.cwd().startsWith("/var/task")) return true;
+  return false;
+}
+
 let cachedUsersFile: string | null = null;
 
 function resolveUsersFile(): string {
@@ -97,6 +109,9 @@ function resolveUsersFile(): string {
   if (fromEnv) return path.resolve(fromEnv);
   const dirFromEnv = process.env.AUTH_DATA_DIR?.trim();
   if (dirFromEnv) return path.join(path.resolve(dirFromEnv), "users.json");
+  if (isServerlessReadonlyDeploy()) {
+    return path.join(tmpdir(), "vitalis-auth", "users.json");
+  }
   return path.join(findNextAppRoot(), "data", "users.json");
 }
 
@@ -133,7 +148,7 @@ function writeStore(store: Store): void {
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     throw new Error(
-      `Could not write user data to ${usersFile}: ${msg}. Set AUTH_USERS_FILE or AUTH_DATA_DIR to a writable folder.`
+      `Could not write user data to ${usersFile}: ${msg}. For AWS Lambda / Vercel, leave AUTH_DATA_DIR unset to use \`${path.join(tmpdir(), "vitalis-auth")}\`, or set AUTH_USERS_FILE / AUTH_DATA_DIR to a writable path (e.g. a mounted volume).`
     );
   }
 }
@@ -168,7 +183,7 @@ export function createUser(email: string, passwordHash: string): UserRecord {
   const roundTrip = readStore().users.find((u) => u.email === e);
   if (!roundTrip) {
     throw new Error(
-      `Account was not readable after save (file: ${getUsersFilePath()}). On serverless hosts (e.g. Vercel) disk is not persistent across requests—run locally, use a VPS with a volume, or connect a database.`
+      `Account was not readable after save (file: ${getUsersFilePath()}). On serverless, use the same instance /tmp store, set AUTH_USERS_FILE to shared storage, or use a database.`
     );
   }
   return user;
